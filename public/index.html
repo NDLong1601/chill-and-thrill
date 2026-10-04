@@ -1,0 +1,889 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#101a16">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="The Gang">
+  <meta name="mobile-web-app-capable" content="yes">
+  <title>The Gang · Bàn chơi</title>
+  <link rel="stylesheet" href="/css/fonts.css">
+  <link rel="stylesheet" href="/css/style.css">
+  <link rel="stylesheet" href="/css/enhancements.css">
+  <link rel="stylesheet" href="/css/table-layout.css">
+</head>
+<body>
+  <div id="rotate-device-overlay" class="rotate-device-overlay" role="alertdialog" aria-modal="true" aria-labelledby="rotate-device-title" aria-describedby="rotate-device-description" tabindex="-1" hidden>
+    <div class="rotate-device-panel">
+      <div class="rotate-device-icon" aria-hidden="true"><span class="rotate-phone"></span><span class="rotate-arrow">↻</span></div>
+      <span class="rotate-device-brand">THE GANG</span>
+      <h2 id="rotate-device-title">Vui lòng xoay ngang điện thoại</h2>
+      <p id="rotate-device-description">Xoay màn hình ngang để xem đầy đủ bàn chơi và tiếp tục vụ cướp.</p>
+      <p class="rotate-device-help">Nếu màn hình chưa xoay, hãy tắt khóa xoay màn hình trên điện thoại.</p>
+      <button id="btn-rotate-fullscreen" class="btn btn-gold">⛶ Chơi toàn màn hình</button>
+    </div>
+  </div>
+  <div id="connection-banner" class="connection-banner hidden" role="status" aria-live="polite"></div>
+  <div id="app-toast" class="app-toast hidden" role="status" aria-live="polite"></div>
+
+  <!-- ══════════════════════════════════════════════════
+       MÀN HÌNH 1: SẢNH CHỜ CHÍNH (LOBBY)
+  ══════════════════════════════════════════════════ -->
+  <div id="screen-lobby" class="screen active">
+    <div class="lobby-container">
+      
+      <!-- Top Branding -->
+      <div class="lobby-brand">
+        <div class="vault-emblem">
+          <span class="vault-door">🏦</span>
+          <div class="gold-sparks">✨</div>
+        </div>
+        <h1 class="brand-title">THE GANG</h1>
+        <p class="brand-tagline">POKER HEIST · HỢP TÁC ĐỤC KÉT NGÂN HÀNG</p>
+      </div>
+
+      <!-- Main Action Card -->
+      <div class="lobby-card">
+
+        <!-- Chọn Avatar -->
+        <div class="form-group">
+          <label class="form-label">Chọn nhân vật của bạn</label>
+          <div class="avatar-picker" id="avatar-picker">
+            <button type="button" class="avatar-opt active" data-avatar="🕶️" title="Kẻ chủ mưu">🕶️</button>
+            <button type="button" class="avatar-opt" data-avatar="🥷" title="Kẻ đột nhập">🥷</button>
+            <button type="button" class="avatar-opt" data-avatar="💻" title="Tin tặc">💻</button>
+            <button type="button" class="avatar-opt" data-avatar="🔓" title="Thợ mở khóa">🔓</button>
+            <button type="button" class="avatar-opt" data-avatar="🎲" title="Tay cờ bạc">🎲</button>
+            <button type="button" class="avatar-opt" data-avatar="🏎️" title="Tài xế tẩu thoát">🏎️</button>
+          </div>
+        </div>
+
+        <!-- Tên người chơi -->
+        <div class="form-group">
+          <label class="form-label" for="inp-name">Tên mật danh</label>
+          <input id="inp-name" type="text" class="form-input" placeholder="Nhập biệt danh của bạn..." maxlength="18" autocomplete="off">
+        </div>
+
+        <!-- Chọn Chế độ chơi (khi Tạo phòng) -->
+        <div class="form-group">
+          <div class="flex-between">
+            <label class="form-label">Chế độ chơi (Dành cho Chủ phòng)</label>
+            <span class="mode-badge-pill" id="mode-badge-preview">Chuẩn The Gang</span>
+          </div>
+          <div class="mode-grid" id="mode-selector">
+            <label class="mode-card">
+              <input type="radio" name="game-mode" value="BASIC">
+              <div class="mode-card-content">
+                <div class="mode-title">Cơ bản</div>
+                <div class="mode-desc">3 Két, 3 Báo động. Không thẻ thử thách. Dễ làm quen.</div>
+              </div>
+            </label>
+            <label class="mode-card active">
+              <input type="radio" name="game-mode" value="ADVANCED" checked>
+              <div class="mode-card-content">
+                <div class="mode-title">Nâng cao</div>
+                <div class="mode-desc">Thắng mở Thử thách, thua mở Chuyên gia. Chuẩn luật!</div>
+              </div>
+            </label>
+            <label class="mode-card">
+              <input type="radio" name="game-mode" value="EXPERT">
+              <div class="mode-card-content">
+                <div class="mode-title">Chuyên nghiệp</div>
+                <div class="mode-desc">1 Thử thách vĩnh viễn suốt trận + Thẻ từng vụ cướp.</div>
+              </div>
+            </label>
+            <label class="mode-card">
+              <input type="radio" name="game-mode" value="MASTER_THIEF">
+              <div class="mode-card-content">
+                <div class="mode-title">Siêu trộm</div>
+                <div class="mode-desc">2 Báo động là thua. Luôn có 2 Thử thách cùng lúc!</div>
+              </div>
+            </label>
+          </div>
+        </div>
+
+        <!-- Nút Tạo phòng -->
+        <button id="btn-create" class="btn btn-gold btn-lg">
+          <span class="btn-icon">🏦</span> TẠO PHÒNG VỤ CƯỚP
+        </button>
+
+        <div class="divider"><span>HOẶC THAM GIA PHÒNG CÓ SẴN</span></div>
+
+        <!-- Nhập mã tham gia -->
+        <div class="join-box">
+          <input id="inp-code" type="text" class="form-input code-input" placeholder="MÃ PHÒNG" maxlength="4" autocomplete="off">
+          <button id="btn-join" class="btn btn-primary">VÀO PHÒNG →</button>
+        </div>
+
+        <div id="lobby-error" class="alert-box error hidden"></div>
+
+      </div>
+
+      <!-- Quick Guide Footer Buttons -->
+      <div class="lobby-footer-actions">
+        <button id="btn-tutorial" class="btn-text">🎓 Chơi thử có hướng dẫn</button>
+        <button id="btn-history-lobby" class="btn-text">📊 Lịch sử cả đội</button>
+        <button id="btn-open-rules" class="btn-text">📖 Xem Luật Chơi Chi Tiết</button>
+        <span class="dot">•</span>
+        <button id="btn-open-poker-rank" class="btn-text">🏆 Bảng Xếp Hạng Bài Poker</button>
+      </div>
+
+    </div>
+  </div>
+
+
+  <!-- ══════════════════════════════════════════════════
+       MÀN HÌNH 2: PHÒNG CHỜ (WAITING ROOM)
+  ══════════════════════════════════════════════════ -->
+  <div id="screen-waiting" class="screen">
+    <div class="waiting-container">
+      
+      <div class="waiting-header">
+        <span class="badge-tag">PHÒNG CHỜ KẾ HOẠCH</span>
+        <h2 class="waiting-title">CHUẨN BỊ BĂNG ĐẢNG</h2>
+      </div>
+
+      <!-- Mã phòng to nổi bật -->
+      <div class="room-code-banner">
+        <div class="rc-info">
+          <span class="rc-label">MÃ PHÒNG WIFI CỦA BẠN</span>
+          <div class="rc-display" id="disp-room-code">----</div>
+        </div>
+        <div class="rc-actions">
+          <button id="btn-copy-code" class="btn btn-outline btn-sm">📋 Sao chép mã</button>
+          <button id="btn-copy-link" class="btn btn-outline btn-sm">🔗 Sao chép link</button>
+        </div>
+      </div>
+      <details class="share-room" open>
+        <summary>📱 Quét QR để vào phòng</summary>
+        <div class="share-room-content">
+          <img id="room-qr" width="160" height="160" alt="Mã QR vào phòng chơi">
+          <div><label for="share-address">Địa chỉ máy chủ trong WiFi</label>
+            <select id="share-address" class="form-select"></select>
+            <a id="share-link" class="share-link" href="#"></a>
+            <p>Điện thoại cần kết nối cùng WiFi với máy chủ.</p>
+          </div>
+        </div>
+      </details>
+
+      <!-- Thông tin chế độ -->
+      <div class="waiting-mode-info">
+        <div class="wmi-left">
+          <span class="wmi-title" id="disp-mode-title">Chế độ: Nâng cao</span>
+          <span class="wmi-desc" id="disp-mode-desc">Thắng mở Thử thách, thua mở Chuyên gia.</span>
+        </div>
+        <div class="wmi-right" id="host-mode-toggle-wrap">
+          <select id="sel-change-mode" class="form-select hidden">
+            <option value="BASIC">Cơ bản (3 Két · 3 Báo động)</option>
+            <option value="ADVANCED" selected>Nâng cao (Thử thách & Chuyên gia)</option>
+            <option value="EXPERT">Chuyên nghiệp (1 Thử thách vĩnh viễn)</option>
+            <option value="MASTER_THIEF">Siêu trộm (2 Báo động · 2 Thử thách)</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Danh sách thành viên trong phòng -->
+      <div class="waiting-members-section">
+        <div class="members-header">
+          <span>THÀNH VIÊN ĐÃ THAM GIA (<span id="disp-member-count">1</span>/6)</span>
+          <span class="sub-hint">Cần từ 2 đến 6 người chơi</span>
+        </div>
+        <div class="members-grid" id="wait-player-grid"></div>
+      </div>
+
+      <!-- Nút điều khiển của Host / Trạng thái -->
+      <div class="waiting-bottom-controls">
+        <label class="chat-mode-setting"><input id="strict-chat" type="checkbox" checked> Giao tiếp theo luật (chỉ câu nhanh, tắt emoji trong vụ cướp)</label>
+        <button id="btn-ready" class="btn btn-primary btn-block">✓ SẴN SÀNG</button>
+        <div class="room-tools"><button id="btn-manage-waiting" class="btn btn-outline btn-sm">👥 Quản lý phòng</button><button id="btn-history-waiting" class="btn btn-outline btn-sm">📊 Lịch sử & thống kê</button><button id="btn-leave-waiting" class="btn btn-outline btn-sm">Rời phòng</button></div>
+        <button id="btn-start-game" class="btn btn-gold btn-lg btn-block hidden">
+          ▶ BẮT ĐẦU VỤ CƯỚP
+        </button>
+        <div id="wait-client-hint" class="client-waiting-hint">
+          <span class="spinner-dot"></span> Đang chờ Host bắt đầu vụ cướp...
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+
+  <!-- ══════════════════════════════════════════════════
+       MÀN HÌNH 3: BÀN CHƠI POKER HEIST (TABLE GAME)
+  ══════════════════════════════════════════════════ -->
+  <div id="screen-game" class="screen">
+
+    <!-- Top Navigation Header -->
+    <header class="table-topbar">
+      
+      <div class="topbar-left">
+        <div class="table-brand">THE GANG</div>
+        <div class="heist-badge" id="disp-heist-num">VỤ CƯỚP #1</div>
+        <div class="round-badge" id="disp-round-name">Vòng 1 · Pre-Flop</div>
+      </div>
+
+      <!-- Status Két Sắt & Báo Động -->
+      <div class="vault-alarm-tracker">
+        <!-- Vaults -->
+        <div class="tracker-box vaults-box">
+          <span class="tb-label">KÉT SẮT</span>
+          <div class="vault-indicators" id="vault-indicators">
+            <div class="v-slot" id="vault-1"><span class="v-icon">🔒</span><span class="v-txt">Két 1</span></div>
+            <div class="v-slot" id="vault-2"><span class="v-icon">🔒</span><span class="v-txt">Két 2</span></div>
+            <div class="v-slot" id="vault-3"><span class="v-icon">🔒</span><span class="v-txt">Két 3</span></div>
+          </div>
+        </div>
+
+        <!-- Alarms -->
+        <div class="tracker-box alarms-box">
+          <span class="tb-label">BÁO ĐỘNG (<span id="alarm-limit-txt">MAX 3</span>)</span>
+          <div class="alarm-indicators" id="alarm-indicators">
+            <div class="a-slot" id="alarm-1"><span class="a-icon">🚨</span></div>
+            <div class="a-slot" id="alarm-2"><span class="a-icon">🚨</span></div>
+            <div class="a-slot" id="alarm-3"><span class="a-icon">🚨</span></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Thẻ Thử Thách Ghim Nổi Bật Trên Topbar (Click để xem lại) -->
+      <div id="pinned-challenge-btn" class="pinned-challenge-chip hidden" title="Click để xem lại nội dung Thử thách">
+        <span class="pcc-icon">⚡</span>
+        <span class="pcc-title" id="pinned-challenge-title">Thử thách #1</span>
+        <span class="pcc-badge">XEM LUẬT 👁️</span>
+      </div>
+
+      <!-- Utility icons -->
+      <div class="topbar-right">
+        <button id="btn-table-feature" class="icon-btn hidden" title="Chuyên gia và so bài" aria-label="Chuyên gia và so bài">✨</button>
+        <button id="btn-manage-game" class="icon-btn" title="Quản lý phòng">👥</button>
+        <button id="btn-history-game" class="icon-btn" title="Lịch sử trận">📊</button>
+        <button id="btn-fullscreen" class="icon-btn" title="Toàn màn hình">⛶</button>
+        <button id="btn-toggle-chat-panel" class="icon-btn relative" title="Trò chuyện & Nhật ký">
+          💬 <span id="chat-unread-dot" class="unread-dot hidden"></span>
+        </button>
+        <button id="btn-sound-toggle" class="icon-btn" title="Bật/Tắt âm thanh">🔊</button>
+        <button id="btn-game-rules" class="icon-btn" title="Luật chơi">📖</button>
+        <button id="btn-game-poker" class="icon-btn" title="Xếp hạng bài Poker">🏆</button>
+        <div class="table-tools">
+          <button id="btn-table-menu" class="icon-btn" title="Menu bàn chơi" aria-label="Menu bàn chơi" aria-expanded="false" aria-controls="table-tools-menu">☰</button>
+          <div id="table-tools-menu" class="table-tools-menu" hidden></div>
+        </div>
+      </div>
+
+    </header>
+    <div id="game-status-banner" class="game-status-banner hidden" role="status"></div>
+    <section id="specialist-panel" class="game-feature-panel hidden" aria-label="Thao tác chuyên gia"></section>
+    <section id="showdown-panel" class="game-feature-panel hidden" aria-label="So bài từng người"></section>
+
+    <!-- Main Poker Arena -->
+    <main class="poker-arena" id="poker-arena">
+
+      <!-- Bàn Poker Casino Sang Trọng -->
+      <div class="poker-table" id="poker-table">
+        
+        <!-- Họa tiết Logo Chìm & Đường May Vàng Bàn Cược -->
+        <div class="table-felt-watermark">
+          <div class="tfw-emblem">🏦 ♠ ♥ ♦ ♣</div>
+          <div class="tfw-title">THE GANG</div>
+          <div class="tfw-sub">COOPERATIVE HEIST POKER</div>
+        </div>
+        <div class="table-betting-line"></div>
+
+        <!-- VÒNG CÁC GHẾ NGƯỜI CHƠI QUANH BÀN -->
+        <div class="table-seats-perimeter" id="table-seats-perimeter">
+          <!-- Rendered seats around perimeter -->
+        </div>
+
+        <!-- KHU VỰC TRUNG TÂM BÀN NỈ (LÁ CHUNG + CHIP POOL) -->
+        <div class="table-centerpiece">
+          
+          <!-- 5 Lá Bài Chung -->
+          <div class="community-zone">
+            <div class="zone-label">BÀI CHUNG</div>
+            <div class="community-cards-row" id="community-cards-row">
+              <div class="card-slot"></div>
+              <div class="card-slot"></div>
+              <div class="card-slot"></div>
+              <div class="card-slot"></div>
+              <div class="card-slot"></div>
+            </div>
+          </div>
+
+          <!-- Khay Chip Vòng Hiện Tại Giữa Bàn -->
+          <div class="pool-zone">
+            <div class="pool-header">
+              <span class="zone-label">CHỌN CHIP: <span id="pool-color-name" class="highlight-text">CHIP TRẮNG (VÒNG 1)</span></span>
+              <span class="pool-hint">Chạm chip để chọn mức sức mạnh</span>
+            </div>
+            <div class="chip-pool-rack" id="center-chip-rack"></div>
+          </div>
+
+        </div>
+
+      </div>
+
+    </main>
+
+    <!-- Khu vực Người Chơi Của Tôi (My Station) -->
+    <footer class="my-player-station" id="my-player-station" aria-label="Bài và chip của bạn">
+      
+      <!-- My Info & Lá Bài Tẩy Của Tôi -->
+      <div class="my-hand-container">
+        <div class="my-info-row">
+          <div class="my-avatar-name">
+            <span class="my-avatar" id="my-avatar-disp">🕶️</span>
+            <span class="my-name" id="my-name-disp">Tôi</span>
+            <button id="btn-hide-cards" class="btn btn-outline btn-xs" aria-pressed="false">🙈 Che bài</button>
+          </div>
+          <div class="hand-hint-bubble" id="my-hand-hint">
+            <span class="hint-icon">💡</span>
+            <span class="hint-text" id="my-hand-hint-txt">Đang tính toán bài...</span>
+          </div>
+        </div>
+
+        <!-- Các lá bài cầm trên tay -->
+        <div class="my-cards-row" id="my-cards-row"></div>
+      </div>
+
+      <!-- Khay 4 Chip Lớn Của Tôi Qua Các Vòng -->
+      <div class="my-chips-tracker">
+        <div class="tracker-title">CHIP CỦA BẠN QUA 4 VÒNG</div>
+        <div class="four-chips-grid">
+          
+          <div class="chip-column" id="col-white">
+            <span class="col-lbl">V1 TRẮNG</span>
+            <div class="chip-socket-lg" id="my-chip-white"><span class="empty-star">-</span></div>
+          </div>
+
+          <div class="chip-column" id="col-yellow">
+            <span class="col-lbl">V2 VÀNG</span>
+            <div class="chip-socket-lg" id="my-chip-yellow"><span class="empty-star">-</span></div>
+          </div>
+
+          <div class="chip-column" id="col-orange">
+            <span class="col-lbl">V3 CAM</span>
+            <div class="chip-socket-lg" id="my-chip-orange"><span class="empty-star">-</span></div>
+          </div>
+
+          <div class="chip-column" id="col-red">
+            <span class="col-lbl">V4 ĐỎ ⭐</span>
+            <div class="chip-socket-lg" id="my-chip-red"><span class="empty-star">-</span></div>
+          </div>
+
+        </div>
+
+        <button id="btn-return-my-chip" class="btn btn-outline btn-xs return-btn hidden">
+          ↩ Trả chip vòng này về bàn
+        </button>
+      </div>
+
+      <!-- Action Panel & Nút Host -->
+      <div class="my-actions-panel">
+        <button id="btn-confirm-round" class="btn btn-primary hidden">✓ CHỐT CHIP</button>
+        <div class="round-status-box" id="round-status-box">
+          <span id="round-chip-status">Đang chờ mọi người chọn chip...</span>
+        </div>
+        
+        <button id="btn-advance-phase" class="btn btn-gold btn-advance hidden">
+          MỞ FLOP (3 LÁ) →
+        </button>
+        <button id="btn-showdown-table" class="btn btn-gold hidden">Lật bài tiếp theo</button>
+      </div>
+
+    </footer>
+
+    <!-- ══════════════════════════════════════════════════
+         WIDGET ĐA NĂNG: TRÒ CHUYỆN & NHẬT KÝ (DRAWER)
+    ══════════════════════════════════════════════════ -->
+    <aside class="comm-dock-panel dock-collapsed" id="comm-dock-panel">
+      
+      <div class="dock-tabs-header">
+        <button class="dock-tab-btn active" id="tab-btn-chat">💬 Trò Chuyện</button>
+        <button class="dock-tab-btn" id="tab-btn-log">📜 Nhật Ký Vụ Cướp</button>
+        <button class="dock-close-btn" id="btn-close-comm-dock">✕</button>
+      </div>
+
+      <!-- Tab Chat -->
+      <div class="dock-tab-content active" id="tab-content-chat">
+        
+        <!-- Quick chat presets -->
+        <div class="quick-chips-scroll">
+          <button class="qc-btn" data-text="Két này ngon ăn rồi! 🔓">Két này ngon! 🔓</button>
+          <button class="qc-btn" data-text="Tôi bài yếu lắm, nhường chip thấp với! 🥺">Bài yếu, nhường chip! 🥺</button>
+          <button class="qc-btn" data-text="Bài tôi siêu mạnh, chừa chip cao nha! 🔥">Bài siêu mạnh! 🔥</button>
+          <button class="qc-btn" data-text="Toang thật rồi bà con ơi... 💀">Toang rồi... 💀</button>
+          <button class="qc-btn" data-text="Tin tôi đi, chuẩn luôn! 😎">Tin tôi đi! 😎</button>
+          <button class="qc-btn" data-text="Đổi chip lẹ nào mọi người! ⚡">Đổi chip lẹ! ⚡</button>
+        </div>
+
+        <div class="chat-messages-container" id="chat-messages-container"></div>
+
+        <form id="chat-form" class="chat-input-bar">
+          <input type="text" id="inp-chat-msg" class="chat-input" placeholder="Gõ tin nhắn bàn cược..." maxlength="80" autocomplete="off">
+          <button type="submit" class="btn btn-primary btn-sm">GỬI</button>
+        </form>
+
+      </div>
+
+      <!-- Tab Log -->
+      <div class="dock-tab-content" id="tab-content-log">
+        <div class="log-messages-list" id="log-messages-list"></div>
+      </div>
+
+    </aside>
+
+  </div>
+
+
+  <!-- ══════════════════════════════════════════════════
+       POPUP MENU TƯƠNG TÁC PLAYER (CƯỚP CHIP & EMOTE)
+  ══════════════════════════════════════════════════ -->
+  <div id="modal-player-action" class="modal-backdrop hidden">
+    <div class="modal-dialog action-popover-dialog">
+      
+      <div class="action-popover-header">
+        <div class="aph-player">
+          <span class="aph-avatar" id="pop-target-avatar">🕶️</span>
+          <div>
+            <h4 class="aph-name" id="pop-target-name">Tên đồng đội</h4>
+            <span class="aph-subtitle">Tương tác thành viên</span>
+          </div>
+        </div>
+        <button class="close-modal-btn" data-close="modal-player-action">✕</button>
+      </div>
+
+      <div class="action-popover-body">
+        
+        <!-- Khối cướp/đổi chip vòng hiện tại -->
+        <div class="snatch-action-box">
+          <div class="sab-title">CHIẾM ĐOẠT CHIP VÒNG HIỆN TẠI:</div>
+          <div class="sab-status" id="pop-chip-status">Đang giữ chip: 3⭐</div>
+          
+          <button id="btn-snatch-chip-action" class="btn btn-gold btn-block btn-snatch">
+            <span class="sab-icon">⚡</span> CƯỚP CHIP CỦA NGƯỜI NÀY!
+          </button>
+          <p class="sab-hint">Hai bên có thể liên tục giật lại chip của nhau để tranh mức mong muốn!</p>
+        </div>
+
+        <!-- Khối gửi Emote nhanh -->
+        <div class="emote-action-box">
+          <div class="eab-title">GỬI BIỂU CẢM (EMOTE) TỚI NGƯỜI NÀY:</div>
+          <div class="emote-grid">
+            <button class="btn-emote" data-emote="😂">😂</button>
+            <button class="btn-emote" data-emote="😱">😱</button>
+            <button class="btn-emote" data-emote="🤔">🤔</button>
+            <button class="btn-emote" data-emote="😎">😎</button>
+            <button class="btn-emote" data-emote="🤫">🤫</button>
+            <button class="btn-emote" data-emote="😡">😡</button>
+            <button class="btn-emote" data-emote="💸">💸</button>
+            <button class="btn-emote" data-emote="🤝">🤝</button>
+            <button class="btn-emote" data-emote="🚨">🚨</button>
+            <button class="btn-emote" data-emote="💀">💀</button>
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+  </div>
+
+
+  <!-- ══════════════════════════════════════════════════
+       SPOTLIGHT MODAL: THẺ THỬ THÁCH / CHUYÊN GIA
+       (Tự đóng sau 10s hoặc đóng tay, có thể xem lại)
+  ══════════════════════════════════════════════════ -->
+  <div id="modal-card-spotlight" class="modal-backdrop hidden">
+    <div class="modal-dialog card-spotlight-dialog">
+      
+      <div class="spotlight-header">
+        <span class="spotlight-tag" id="spot-type-tag">⚡ THẺ THỬ THÁCH MỚI KÍCH HOẠT</span>
+        <button class="close-modal-btn" data-close="modal-card-spotlight">✕</button>
+      </div>
+
+      <div class="spotlight-card-content">
+        <div class="spot-card-icon" id="spot-icon">🔊</div>
+        <h2 class="spot-card-title" id="spot-title">#2 Cảm Biến Tiếng Ồn</h2>
+        <div class="spot-card-rule" id="spot-rule">
+          Lật mặt tối các chip 1 sao cho Vòng 1, 2 và 3. Những chip này không thể đổi chủ sau khi đã được lấy khỏi giữa bàn.
+        </div>
+      </div>
+
+      <!-- Thanh đếm ngược 10s -->
+      <div class="spotlight-footer">
+        <div class="countdown-track">
+          <div class="countdown-bar" id="spot-countdown-bar"></div>
+        </div>
+        <div class="spot-actions">
+          <span class="auto-close-lbl">Tự đóng sau <b id="spot-timer-num">10</b>s...</span>
+          <button class="btn btn-gold btn-sm" data-close="modal-card-spotlight">ĐÃ HIỂU LUẬT (ĐÓNG) ✕</button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+
+  <!-- ══════════════════════════════════════════════════
+       TOAST SNATCH NOTIFICATION (KHI BỊ CƯỚP CHIP)
+  ══════════════════════════════════════════════════ -->
+  <div id="snatch-toast" class="snatch-toast hidden">
+    <div class="st-icon">⚡</div>
+    <div class="st-content">
+      <strong id="st-title">BỊ CƯỚP CHIP!</strong>
+      <span id="st-desc">Chocolate vừa cướp chip 2⭐ của bạn!</span>
+    </div>
+  </div>
+
+
+  <!-- ══════════════════════════════════════════════════
+       OVERLAY 1: KẾT QUẢ VỤ CƯỚP (RESULT MODAL)
+  ══════════════════════════════════════════════════ -->
+  <div id="modal-result" class="modal-backdrop hidden">
+    <div class="modal-dialog result-dialog">
+      
+      <div class="result-badge-banner" id="res-banner">
+        <div class="res-icon" id="res-icon">🔓</div>
+        <h2 class="res-title" id="res-title">VỤ CƯỚP THÀNH CÔNG!</h2>
+        <p class="res-reason" id="res-reason">Thứ tự chip hoàn toàn chính xác!</p>
+      </div>
+
+      <div class="result-score-bar">
+        <div class="res-score-item">
+          <span>KÉT SẮT ĐÃ MỞ:</span>
+          <strong id="res-vault-txt">1 / 3</strong>
+        </div>
+        <div class="res-score-divider">•</div>
+        <div class="res-score-item">
+          <span>CHUÔNG BÁO ĐỘNG:</span>
+          <strong id="res-alarm-txt">0 / 3</strong>
+        </div>
+      </div>
+
+      <div class="showdown-detail-list">
+        <div class="sdl-header">
+          <span>THÀNH VIÊN</span>
+          <span>CHIP ĐỎ (V4)</span>
+          <span>BÀI TẨY</span>
+          <span>TAY BÀI 5 LÁ TỐT NHẤT</span>
+        </div>
+        <div class="sdl-body" id="res-showdown-rows"></div>
+      </div>
+
+      <div class="result-actions-footer">
+        <div id="host-next-heist-wrap" class="hidden">
+          <button id="btn-next-heist" class="btn btn-gold btn-lg btn-block">
+            ▶ TIẾP TỤC VỤ CƯỚP TIẾP THEO
+          </button>
+        </div>
+        <div id="client-wait-heist-wrap" class="client-wait-box">
+          <span class="spinner-dot"></span> Đang chờ Host bắt đầu vụ cướp tiếp theo...
+        </div>
+        <button id="btn-result-to-lobby" class="btn btn-outline btn-sm">
+          🏠 Trở về phòng chờ
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+
+  <!-- ══════════════════════════════════════════════════
+       OVERLAY 2: KẾT THÚC TRẬN ĐẤU (GAME OVER MODAL)
+  ══════════════════════════════════════════════════ -->
+  <div id="modal-gameover" class="modal-backdrop hidden">
+    <div class="modal-dialog gameover-dialog">
+      
+      <div class="gameover-emblem" id="go-emblem">🏆</div>
+      <h2 class="gameover-title" id="go-title">CHIẾN THẮNG HOÀNG GIA!</h2>
+      <p class="gameover-subtitle" id="go-subtitle">Băng nhóm đã thành công phá sạch cả 3 két sắt của ngân hàng!</p>
+
+      <div class="gameover-stats">
+        <div class="stat-pill gold"><span class="sp-num" id="go-vault-cnt">3</span> Két sắt mở</div>
+        <div class="stat-pill red"><span class="sp-num" id="go-alarm-cnt">1</span> Báo động</div>
+      </div>
+
+      <div class="gameover-actions">
+        <button id="btn-play-again" class="btn btn-gold btn-lg btn-block hidden">
+          🔄 CHƠI LẠI TRẬN MỚI CÙNG PHÒNG
+        </button>
+        <div id="client-go-wait" class="client-wait-box hidden">
+          <span class="spinner-dot"></span> Đang chờ Host quyết định chơi lại...
+        </div>
+        <button id="btn-go-lobby" class="btn btn-outline btn-block">
+          🏠 Trở về sảnh chính
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+
+  <!-- ══════════════════════════════════════════════════
+       MODAL: LUẬT CHƠI CHI TIẾT
+  ══════════════════════════════════════════════════ -->
+  <div id="modal-rules" class="modal-backdrop hidden">
+    <div class="modal-dialog info-dialog">
+      <div class="modal-header">
+        <h3>📖 HƯỚNG DẪN LUẬT CHƠI THE GANG</h3>
+        <button class="close-modal-btn" data-close="modal-rules">✕</button>
+      </div>
+      <div class="modal-body-scroll">
+        <section class="rule-sec">
+          <h4>🎯 Mục Tiêu Trò Chơi</h4>
+          <p>The Gang là game <strong>Poker Hợp Tác</strong> dành cho 2–6 người chơi. Cả đội cùng thắng hoặc cùng thua! Mục tiêu là hợp tác <strong>phá 3 két sắt ngân hàng</strong> trước khi kích hoạt <strong>3 chuông báo động</strong> (chế độ Siêu trộm là 2 báo động).</p>
+        </section>
+        <section class="rule-sec">
+          <h4>🤫 Quy Tắc Giao Tiếp</h4>
+          <p><strong>Tuyệt đối không được nói về bài của mình!</strong> Bạn chỉ giao tiếp thông qua việc <strong>chọn và đổi chip</strong> trên bàn. Chip <strong>1⭐ là yếu nhất</strong>, chip <strong>cao nhất là mạnh nhất</strong>.</p>
+        </section>
+        <section class="rule-sec">
+          <h4>🔄 Quy Trình 4 Vòng Chip</h4>
+          <ul>
+            <li><strong>Vòng 1 (Pre-Flop):</strong> Chia 2 lá bài tẩy. Đặt và lấy <strong>Chip Trắng (⚪)</strong>.</li>
+            <li><strong>Vòng 2 (The Flop):</strong> Lật 3 lá bài chung. Đặt và lấy <strong>Chip Vàng (🟡)</strong>.</li>
+            <li><strong>Vòng 3 (The Turn):</strong> Lật lá bài chung thứ 4. Đặt và lấy <strong>Chip Cam (🟠)</strong>.</li>
+            <li><strong>Vòng 4 (The River):</strong> Lật lá bài chung thứ 5. Đặt và lấy <strong>Chip Đỏ (🔴)</strong>.</li>
+          </ul>
+        </section>
+        <section class="rule-sec">
+          <h4>⚖️ Màn So Bài (Showdown)</h4>
+          <p>Chỉ những con <strong>Chip Đỏ (Vòng 4)</strong> mới quyết định kết quả. Lật bài từ Chip đỏ 1⭐ đến cao nhất. Nếu thứ tự tăng dần chuẩn xác (hoặc hòa nhau hợp lệ) → <strong>🔓 Phá được 1 Két sắt</strong>! Nếu ai đó lật bài yếu hơn người trước → <strong>🚨 Kích hoạt 1 Báo động</strong>!</p>
+        </section>
+        <section class="rule-sec">
+          <h4>🃏 Thẻ Thử Thách & Chuyên Gia</h4>
+          <p>Ở chế độ <em>Nâng cao</em>: Sau mỗi vụ cướp thành công, mở 1 thẻ <strong>Thử thách</strong> (tăng độ khó). Nếu thất bại, mở 1 thẻ <strong>Chuyên gia</strong> (trợ giúp băng trộm)!</p>
+        </section>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-primary" data-close="modal-rules">Đã hiểu</button>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- ══════════════════════════════════════════════════
+       MODAL: BẢNG XẾP HẠNG BÀI POKER
+  ══════════════════════════════════════════════════ -->
+  <div id="modal-poker-rank" class="modal-backdrop hidden">
+    <div class="modal-dialog info-dialog">
+      <div class="modal-header">
+        <h3>🏆 BẢNG XẾP HẠNG TAY BÀI POKER</h3>
+        <button class="close-modal-btn" data-close="modal-poker-rank">✕</button>
+      </div>
+      <div class="modal-body-scroll">
+        <p class="rank-note">Mỗi bộ bài gồm <strong>chính xác 5 lá bài tốt nhất</strong> từ bài tẩy và bài chung. Xếp từ MẠNH NHẤT đến YẾU NHẤT:</p>
+        <div class="poker-rank-table">
+          <!-- 10. Sảnh chúa -->
+          <div class="pr-row">
+            <span class="pr-lvl">10</span>
+            <div class="pr-info">
+              <strong>Sảnh chúa (Royal Flush)</strong>
+              <small>10, J, Q, K, A đồng chất cao nhất</small>
+            </div>
+            <div class="pr-cards-visual" title="10♠ J♠ Q♠ K♠ A♠">
+              <div class="pr-card-mini"><span class="pr-c-val">10</span><span class="pr-c-suit">♠</span></div>
+              <div class="pr-card-mini"><span class="pr-c-val">J</span><span class="pr-c-suit">♠</span></div>
+              <div class="pr-card-mini"><span class="pr-c-val">Q</span><span class="pr-c-suit">♠</span></div>
+              <div class="pr-card-mini"><span class="pr-c-val">K</span><span class="pr-c-suit">♠</span></div>
+              <div class="pr-card-mini"><span class="pr-c-val">A</span><span class="pr-c-suit">♠</span></div>
+            </div>
+          </div>
+
+          <!-- 9. Thùng phá sảnh -->
+          <div class="pr-row">
+            <span class="pr-lvl">9</span>
+            <div class="pr-info">
+              <strong>Thùng phá sảnh (Straight Flush)</strong>
+              <small>5 lá liên tiếp cùng một chất</small>
+            </div>
+            <div class="pr-cards-visual" title="5♥ 6♥ 7♥ 8♥ 9♥">
+              <div class="pr-card-mini red"><span class="pr-c-val">5</span><span class="pr-c-suit">♥</span></div>
+              <div class="pr-card-mini red"><span class="pr-c-val">6</span><span class="pr-c-suit">♥</span></div>
+              <div class="pr-card-mini red"><span class="pr-c-val">7</span><span class="pr-c-suit">♥</span></div>
+              <div class="pr-card-mini red"><span class="pr-c-val">8</span><span class="pr-c-suit">♥</span></div>
+              <div class="pr-card-mini red"><span class="pr-c-val">9</span><span class="pr-c-suit">♥</span></div>
+            </div>
+          </div>
+
+          <!-- 8. Tứ quý -->
+          <div class="pr-row">
+            <span class="pr-lvl">8</span>
+            <div class="pr-info">
+              <strong>Tứ quý (Four of a Kind)</strong>
+              <small>4 lá bài cùng giá trị</small>
+            </div>
+            <div class="pr-cards-visual" title="4 lá K + lá phụ 2♦">
+              <div class="pr-card-mini"><span class="pr-c-val">K</span><span class="pr-c-suit">♣</span></div>
+              <div class="pr-card-mini red"><span class="pr-c-val">K</span><span class="pr-c-suit">♦</span></div>
+              <div class="pr-card-mini red"><span class="pr-c-val">K</span><span class="pr-c-suit">♥</span></div>
+              <div class="pr-card-mini"><span class="pr-c-val">K</span><span class="pr-c-suit">♠</span></div>
+              <div class="pr-card-mini red kicker"><span class="pr-c-val">2</span><span class="pr-c-suit">♦</span></div>
+            </div>
+          </div>
+
+          <!-- 7. Cù lũ -->
+          <div class="pr-row">
+            <span class="pr-lvl">7</span>
+            <div class="pr-info">
+              <strong>Cù lũ (Full House)</strong>
+              <small>Bộ ba lá + Một đôi</small>
+            </div>
+            <div class="pr-cards-visual" title="Bộ 3 lá Q + Đôi 8">
+              <div class="pr-card-mini"><span class="pr-c-val">Q</span><span class="pr-c-suit">♠</span></div>
+              <div class="pr-card-mini red"><span class="pr-c-val">Q</span><span class="pr-c-suit">♥</span></div>
+              <div class="pr-card-mini red"><span class="pr-c-val">Q</span><span class="pr-c-suit">♦</span></div>
+              <div class="pr-card-mini"><span class="pr-c-val">8</span><span class="pr-c-suit">♣</span></div>
+              <div class="pr-card-mini"><span class="pr-c-val">8</span><span class="pr-c-suit">♠</span></div>
+            </div>
+          </div>
+
+          <!-- 6. Thùng -->
+          <div class="pr-row">
+            <span class="pr-lvl">6</span>
+            <div class="pr-info">
+              <strong>Thùng (Flush)</strong>
+              <small>5 lá cùng một chất (đồng chất)</small>
+            </div>
+            <div class="pr-cards-visual" title="5 lá đồng chất rô">
+              <div class="pr-card-mini red"><span class="pr-c-val">2</span><span class="pr-c-suit">♦</span></div>
+              <div class="pr-card-mini red"><span class="pr-c-val">5</span><span class="pr-c-suit">♦</span></div>
+              <div class="pr-card-mini red"><span class="pr-c-val">9</span><span class="pr-c-suit">♦</span></div>
+              <div class="pr-card-mini red"><span class="pr-c-val">J</span><span class="pr-c-suit">♦</span></div>
+              <div class="pr-card-mini red"><span class="pr-c-val">A</span><span class="pr-c-suit">♦</span></div>
+            </div>
+          </div>
+
+          <!-- 5. Sảnh -->
+          <div class="pr-row">
+            <span class="pr-lvl">5</span>
+            <div class="pr-info">
+              <strong>Sảnh (Straight)</strong>
+              <small>5 lá có giá trị liên tiếp</small>
+            </div>
+            <div class="pr-cards-visual" title="Sảnh liên tiếp 7, 8, 9, 10, J">
+              <div class="pr-card-mini"><span class="pr-c-val">7</span><span class="pr-c-suit">♠</span></div>
+              <div class="pr-card-mini red"><span class="pr-c-val">8</span><span class="pr-c-suit">♥</span></div>
+              <div class="pr-card-mini red"><span class="pr-c-val">9</span><span class="pr-c-suit">♦</span></div>
+              <div class="pr-card-mini"><span class="pr-c-val">10</span><span class="pr-c-suit">♣</span></div>
+              <div class="pr-card-mini"><span class="pr-c-val">J</span><span class="pr-c-suit">♠</span></div>
+            </div>
+          </div>
+
+          <!-- 4. Bộ ba lá -->
+          <div class="pr-row">
+            <span class="pr-lvl">4</span>
+            <div class="pr-info">
+              <strong>Bộ ba lá (Three of a Kind)</strong>
+              <small>3 lá bài cùng giá trị</small>
+            </div>
+            <div class="pr-cards-visual" title="Bộ 3 lá 10">
+              <div class="pr-card-mini red"><span class="pr-c-val">10</span><span class="pr-c-suit">♥</span></div>
+              <div class="pr-card-mini red"><span class="pr-c-val">10</span><span class="pr-c-suit">♦</span></div>
+              <div class="pr-card-mini"><span class="pr-c-val">10</span><span class="pr-c-suit">♠</span></div>
+              <div class="pr-card-mini kicker"><span class="pr-c-val">4</span><span class="pr-c-suit">♣</span></div>
+              <div class="pr-card-mini red kicker"><span class="pr-c-val">7</span><span class="pr-c-suit">♦</span></div>
+            </div>
+          </div>
+
+          <!-- 3. Hai đôi -->
+          <div class="pr-row">
+            <span class="pr-lvl">3</span>
+            <div class="pr-info">
+              <strong>Hai đôi (Two Pair)</strong>
+              <small>2 cặp bài cùng giá trị</small>
+            </div>
+            <div class="pr-cards-visual" title="Đôi J và Đôi 4">
+              <div class="pr-card-mini red"><span class="pr-c-val">J</span><span class="pr-c-suit">♦</span></div>
+              <div class="pr-card-mini"><span class="pr-c-val">J</span><span class="pr-c-suit">♠</span></div>
+              <div class="pr-card-mini red"><span class="pr-c-val">4</span><span class="pr-c-suit">♥</span></div>
+              <div class="pr-card-mini"><span class="pr-c-val">4</span><span class="pr-c-suit">♣</span></div>
+              <div class="pr-card-mini kicker"><span class="pr-c-val">A</span><span class="pr-c-suit">♠</span></div>
+            </div>
+          </div>
+
+          <!-- 2. Một đôi -->
+          <div class="pr-row">
+            <span class="pr-lvl">2</span>
+            <div class="pr-info">
+              <strong>Một đôi (One Pair)</strong>
+              <small>1 cặp bài cùng giá trị</small>
+            </div>
+            <div class="pr-cards-visual" title="Đôi Át">
+              <div class="pr-card-mini red"><span class="pr-c-val">A</span><span class="pr-c-suit">♥</span></div>
+              <div class="pr-card-mini"><span class="pr-c-val">A</span><span class="pr-c-suit">♣</span></div>
+              <div class="pr-card-mini red kicker"><span class="pr-c-val">9</span><span class="pr-c-suit">♦</span></div>
+              <div class="pr-card-mini kicker"><span class="pr-c-val">6</span><span class="pr-c-suit">♠</span></div>
+              <div class="pr-card-mini red kicker"><span class="pr-c-val">3</span><span class="pr-c-suit">♥</span></div>
+            </div>
+          </div>
+
+          <!-- 1. Bài cao -->
+          <div class="pr-row">
+            <span class="pr-lvl">1</span>
+            <div class="pr-info">
+              <strong>Bài cao (High Card)</strong>
+              <small>Không tạo thành kết hợp nào</small>
+            </div>
+            <div class="pr-cards-visual" title="Át là lá cao nhất">
+              <div class="pr-card-mini highlight-card"><span class="pr-c-val">A</span><span class="pr-c-suit">♠</span></div>
+              <div class="pr-card-mini red"><span class="pr-c-val">K</span><span class="pr-c-suit">♦</span></div>
+              <div class="pr-card-mini red"><span class="pr-c-val">10</span><span class="pr-c-suit">♥</span></div>
+              <div class="pr-card-mini"><span class="pr-c-val">7</span><span class="pr-c-suit">♣</span></div>
+              <div class="pr-card-mini red"><span class="pr-c-val">2</span><span class="pr-c-suit">♦</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-primary" data-close="modal-poker-rank">Đã hiểu</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="modal-management" class="modal-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="management-title"><div class="modal-dialog info-dialog"><div class="modal-header"><h3 id="management-title">👥 Quản lý phòng</h3><button class="close-modal-btn" data-close="modal-management" aria-label="Đóng">✕</button></div><div id="management-content" class="modal-body-scroll"></div></div></div>
+  <div id="modal-history" class="modal-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="history-title"><div class="modal-dialog info-dialog"><div class="modal-header"><h3 id="history-title">📊 Lịch sử & thống kê cả đội</h3><button class="close-modal-btn" data-close="modal-history" aria-label="Đóng">✕</button></div><div id="history-content" class="modal-body-scroll"></div></div></div>
+  <div id="modal-tutorial" class="modal-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="tutorial-title"><div class="modal-dialog info-dialog"><div class="modal-header"><h3 id="tutorial-title">🎓 Vụ cướp luyện tập</h3><button class="close-modal-btn" data-close="modal-tutorial" aria-label="Đóng">✕</button></div><div id="tutorial-content" class="modal-body-scroll"></div></div></div>
+  <div id="modal-table-feature" class="modal-backdrop hidden">
+    <div class="modal-dialog table-feature-dialog" role="dialog" aria-modal="true" aria-labelledby="table-feature-title">
+      <div class="modal-header"><h3 id="table-feature-title">Thao tác trên bàn</h3><button class="close-modal-btn" data-close="modal-table-feature" aria-label="Đóng">✕</button></div>
+      <div id="table-feature-content" class="modal-body-scroll"></div>
+    </div>
+  </div>
+  <div id="modal-my-hand" class="modal-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="my-hand-preview-title">
+    <div class="modal-dialog private-hand-dialog">
+      <div class="modal-header"><h3 id="my-hand-preview-title">Bài của bạn</h3><button class="close-modal-btn" data-close="modal-my-hand" aria-label="Đóng">✕</button></div>
+      <div id="private-hand-preview" class="modal-body-scroll"></div>
+    </div>
+  </div>
+  <div id="modal-ios-fullscreen" class="modal-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="ios-fs-title">
+    <div class="modal-dialog info-dialog">
+      <div class="modal-header">
+        <h3 id="ios-fs-title">📱 Hướng dẫn toàn màn hình (iPhone / Safari)</h3>
+        <button class="close-modal-btn" data-close="modal-ios-fullscreen" aria-label="Đóng">✕</button>
+      </div>
+      <div class="modal-body-scroll" style="padding: 16px; line-height: 1.6; font-size: 14px;">
+        <p style="margin-bottom: 12px; color: var(--text-main);">Trình duyệt trên iPhone (iOS) không cho phép website tự bật toàn màn hình trực tiếp. Để chơi <strong>tràn viền 100%</strong> cực đã, bạn có thể thực hiện:</p>
+        <div style="background: rgba(212,175,55,0.12); border: 1px solid var(--border-gold); border-radius: 10px; padding: 12px; margin-bottom: 12px;">
+          <strong style="color: var(--gold-light); display: block; margin-bottom: 6px; font-size: 15px;">✨ Cách 1: Thêm vào Màn hình chính (Khuyên dùng)</strong>
+          <span style="color: var(--text-main);">1. Chạm vào nút <strong>Chia sẻ</strong> (biểu tượng ô vuông mũi tên ⬆️) trên trình duyệt.<br>
+          2. Chọn <strong>"Thêm vào MH chính" (Add to Home Screen)</strong>.<br>
+          3. Mở game từ icon ngoài màn hình chính để chơi <strong>toàn màn hình 100% không viền</strong> như app tải về!</span>
+        </div>
+        <div style="background: rgba(255,255,255,0.06); border-radius: 10px; padding: 12px;">
+          <strong style="color: var(--text-main); display: block; margin-bottom: 6px;">🔄 Cách 2: Ẩn thanh công cụ nhanh</strong>
+          <span style="color: var(--text-muted);">Xoay ngang màn hình và vuốt nhẹ ngón tay lên trên, thanh địa chỉ của trình duyệt sẽ tự động thu nhỏ lại.</span>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-gold" data-close="modal-ios-fullscreen">Đã hiểu</button>
+      </div>
+    </div>
+  </div>
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="/js/app.js"></script>
+  <script src="/js/enhancements.js"></script>
+  <script src="/js/table-layout.js"></script>
+</body>
+</html>

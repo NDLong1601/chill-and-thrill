@@ -1,0 +1,194 @@
+:root { --font-serif: 'Playfair Display', 'Times New Roman', serif; --font-sans: 'Be Vietnam Pro', 'Segoe UI', Arial, sans-serif; }
+
+.rotate-device-overlay { position: fixed; inset: 0; z-index: 1000; display: grid; place-items: center; padding: max(24px, env(safe-area-inset-top)) 24px max(24px, env(safe-area-inset-bottom)); background: radial-gradient(ellipse at center, #153326 0%, #090a10 75%); overflow-y: auto; overscroll-behavior: contain; }
+.rotate-device-overlay[hidden] { display: none; }
+.rotate-device-panel { max-width: 360px; text-align: center; }
+.rotate-device-brand { display: block; color: var(--gold); font-family: var(--font-serif); letter-spacing: 4px; margin: 28px 0 14px; }
+.rotate-device-panel h2 { font-size: 25px; line-height: 1.35; color: var(--gold-light); margin-bottom: 16px; }
+.rotate-device-panel p { color: var(--text-main); line-height: 1.7; }
+.rotate-device-panel .rotate-device-help { margin-top: 22px; font-size: 13px; color: var(--text-muted); }
+.rotate-device-icon { position: relative; width: 116px; height: 116px; margin: auto; display: grid; place-items: center; }
+.rotate-phone { display: block; width: 44px; height: 78px; border: 3px solid var(--gold); border-radius: 10px; position: relative; animation: rotatePhone 3s ease-in-out infinite; }
+.rotate-phone::after { content: ''; position: absolute; width: 14px; height: 3px; border-radius: 3px; background: var(--gold); left: 50%; bottom: 6px; transform: translateX(-50%); }
+.rotate-arrow { position: absolute; right: 0; top: 0; font-size: 40px; color: var(--gold-light); }
+.needs-landscape { overflow: hidden; }
+@keyframes rotatePhone { 0%, 15% { transform: rotate(0); } 45%, 75% { transform: rotate(-90deg); } 100% { transform: rotate(0); } }
+body, .screen { height: 100vh; height: 100dvh; }
+.screen.active { overflow-y: auto; -webkit-overflow-scrolling: touch; }
+/* Keep one viewport-sized scroll container so touch swipes reach the hand. */
+#screen-game { min-height: 0; height: 100vh; height: 100dvh; position: relative; overflow-x: hidden; overscroll-behavior-y: contain; }
+#screen-game > * { flex-shrink: 0; }
+.screen:not(.active) { display: none !important; }
+.connection-banner { position: fixed; z-index: 400; top: 0; width: 100%; padding: 12px; text-align: center; background: #573b0a; color: white; }
+.app-toast { position: fixed; z-index: 500; bottom: max(20px, env(safe-area-inset-bottom)); left: 50%; transform: translateX(-50%); width: max-content; max-width: min(90vw, 600px); padding: 14px 20px; background: #1f2d3f; border: 1px solid var(--gold); border-radius: 12px; box-shadow: 0 6px 30px #0008; }
+.is-offline .my-actions-panel, .is-offline #center-chip-rack { pointer-events: none; opacity: .5; }
+.share-room { background: var(--bg-panel); padding: 12px; border: 1px solid var(--border-dim); border-radius: 12px; margin: 12px 0; }
+summary { cursor: pointer; padding: 6px 0; font-weight: 600; }
+.share-room-content { display: flex; align-items: center; gap: 16px; padding-top: 12px; }
+.share-room img { background: white; border-radius: 8px; flex-shrink: 0; }
+.share-room-content div { min-width: 0; }
+.share-room-content p, .share-link { margin-top: 8px; display: block; font-size: 12px; overflow-wrap: anywhere; }
+.share-link { color: var(--gold-light); user-select: text; }
+.share-room select { max-width: 100%; width: 100%; }
+.waiting-bottom-controls { display: flex; flex-direction: column; gap: 12px; }
+.chat-mode-setting { display: flex; gap: 8px; text-align: left; align-items: flex-start; }
+.chat-mode-setting input { margin-top: 3px; accent-color: var(--gold); }
+.room-tools { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
+.ready-status { margin-left: auto; color: var(--gold-light); font-size: 12px; }
+.is-ready { background: #17623e; }
+.lobby-footer-actions { flex-wrap: wrap; gap: 12px; }
+.game-feature-panel { padding: 14px; background: #15211b; border: 1px solid #376849; border-radius: 12px; margin: 10px 16px; flex-shrink: 0; }
+.game-feature-panel p { margin: 8px 0; color: var(--text-muted); }
+.game-feature-panel .form-select { width: auto; max-width: 100%; display: inline-block; margin: 6px; }
+.game-feature-panel > button { margin: 6px; }
+.game-status-banner { background: #51360d; border: 1px solid #9a7427; padding: 12px; text-align: center; }
+.card-choice { display: inline-flex; flex-direction: column; align-items: center; padding: 4px; gap: 6px; color: var(--text-main); }
+.card-choice:hover { outline: 2px solid var(--gold); border-radius: 8px; }
+.private-insight { display: flex; align-items: center; gap: 12px; margin-top: 10px; padding: 10px; border: 1px dashed var(--gold); }
+.showdown-step { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; padding: 8px 0; border-bottom: 1px solid var(--border-dim); }
+.showdown-step > span { min-width: 200px; }
+.vote-detail { display: block; }
+.blocked-controls { pointer-events: none; opacity: .45; }
+.best-five { display: flex; gap: 3px; margin: 6px 0; flex-wrap: wrap; }
+.sdl-hand-rank small { display: block; white-space: normal; color: var(--text-muted); font-size: 11px; line-height: 1.5; }
+.order-error { background: #792d2d33; border-left: 3px solid var(--red); }
+.management-row { display: flex; flex-wrap: wrap; gap: 8px; padding: 12px 0; border-bottom: 1px solid var(--border-dim); align-items: center; }
+.management-row > span { flex: 1; min-width: 160px; }
+#management-content > button { margin: 6px; }
+#management-content p { margin: 16px 0; color: var(--text-muted); }
+.stats-table { width: 100%; border-collapse: collapse; margin: 18px 0; font-size: 12px; }
+.stats-table th, .stats-table td { text-align: left; padding: 10px 6px; border-bottom: 1px solid var(--border-dim); }
+.history-entry { border: 1px solid var(--border-dim); padding: 8px 12px; border-radius: 8px; margin: 10px 0; }
+.history-hand { display: flex; flex-wrap: wrap; gap: 4px; padding: 10px 0; }
+.history-hand p, .history-hand small { flex-basis: 100%; }
+.history-hand small { color: var(--text-muted); padding-top: 6px; }
+.tutorial-cards { display: flex; align-items: center; gap: 8px; margin: 14px 0; }
+.tutorial-cards strong { width: 75px; flex-shrink: 0; }
+#tutorial-content p { margin: 12px 0; }
+#tutorial-content > button { margin: 6px; }
+button:focus-visible, [role='button']:focus-visible, select:focus-visible, summary:focus-visible { outline: 2px solid var(--gold-light); outline-offset: 3px; }
+.table-topbar { position: sticky; top: 0; }
+.my-player-station { flex-shrink: 0; padding-bottom: max(16px, env(safe-area-inset-bottom)); }
+.my-hand-container, .my-info-row, .my-avatar-name { min-width: 0; }
+.my-name { overflow-wrap: anywhere; }
+.poker-arena { min-height: 520px; flex: 1 0 auto; padding: 30px 94px 24px; }
+.poker-table { height: 460px; max-height: none; padding: 0; flex-shrink: 0; }
+.table-seats-perimeter { position: absolute; inset: 0; width: auto; display: block; pointer-events: none; }
+.opp-seat-capsule { position: absolute; width: 160px; min-width: 0; padding: 8px; gap: 6px; pointer-events: auto; transform: translate(-50%, -50%); transition: border-color .2s, box-shadow .2s; }
+.opp-seat-capsule:hover { transform: translate(-50%, -50%); }
+.opp-seat-capsule[data-position='left'] { left: 0; top: 64%; }
+.opp-seat-capsule[data-position='right'] { left: 100%; top: 64%; }
+.opp-seat-capsule[data-position^='top-'] { top: -12px; transform: translateX(-50%); }
+.opp-seat-capsule[data-position='top-left'] { left: 22%; }
+.opp-seat-capsule[data-position='top-center'] { left: 50%; }
+.opp-seat-capsule[data-position='top-right'] { left: 78%; }
+.osc-interact-badge { display: none; }
+.osc-avatar-ring { flex-shrink: 0; width: 28px; height: 28px; font-size: 18px; }
+.osc-name { max-width: none; min-width: 0; flex: 1; }
+.osc-cards-fanned { gap: 0; padding: 3px 0; }
+.osc-cards-fanned .playing-card + .playing-card { margin-left: -8px; }
+.osc-cards-fanned .playing-card:nth-child(2) { transform: rotate(6deg); }
+.osc-hand-rank-name:empty { display: none; }
+.table-centerpiece { position: absolute; top: 64%; left: 50%; transform: translate(-50%, -50%); width: max-content; max-width: calc(100% - 160px); margin: 0; }
+.chip-pool-rack { gap: 8px; padding: 8px 12px; }
+.chip-pool-rack .poker-chip { width: 44px; height: 44px; }
+.touch-device button, .touch-device .pinned-challenge-chip { min-height: 44px; }
+.touch-device .icon-btn { min-width: 44px; }
+.touch-device .poker-chip:hover { transform: none; }
+.comm-dock-panel { bottom: 20px; z-index: 70; }
+.modal-dialog { max-height: 88dvh; }
+.modal-body-scroll { overscroll-behavior: contain; }
+.pinned-challenge-chip { max-width: 100%; overflow-wrap: anywhere; }
+@media (max-width: 600px) {
+  .btn-sm { min-height: 40px; }
+  .game-feature-panel { margin: 8px; padding: 12px; }
+  .share-room-content { flex-direction: column; align-items: stretch; }
+  .share-room img { align-self: center; }
+  .modal-dialog { width: calc(100vw - 20px); max-width: none; margin: 10px; }
+  .sdl-header { display: none; }
+  .sdl-row { display: flex; flex-wrap: wrap; gap: 10px; }
+  .sdl-row .sdl-hand-rank { width: 100%; }
+  .comm-dock-panel { width: calc(100vw - 20px); right: 10px; bottom: 10px; max-height: 60dvh; }
+  .tutorial-cards { gap: 4px; }
+  .tutorial-cards strong { width: 60px; font-size: 12px; }
+  .tutorial-cards .playing-card.card-sm { width: 35px; height: 53px; }
+  .connection-banner { font-size: 12px; }
+}
+@media (max-width: 1100px) {
+  .table-topbar { display: grid; grid-template-columns: minmax(0, 1fr) auto; height: auto; min-height: 60px; gap: 8px; padding: 8px max(12px, env(safe-area-inset-right)) 8px max(12px, env(safe-area-inset-left)); }
+  .topbar-left { grid-column: 1; grid-row: 1; width: auto; flex-wrap: wrap; gap: 8px; }
+  .table-brand { display: none; }
+  .vault-alarm-tracker { grid-column: 2; grid-row: 1; width: auto; gap: 12px; }
+  .vault-alarm-tracker .tb-label, .v-txt { display: none; }
+  .v-slot { padding: 3px 5px; }
+  .topbar-right { grid-column: 1 / -1; grid-row: 2; width: 100%; margin: 0; gap: 6px; justify-content: flex-end; }
+  .btn-hand-jump { margin-right: auto; }
+  .icon-btn { width: 44px; height: 44px; padding: 6px; }
+  .pinned-challenge-chip { grid-column: 1 / -1; grid-row: 3; width: auto; justify-self: start; }
+  .pcc-badge { display: none; }
+  .poker-arena { padding: 28px 76px 20px; min-height: 408px; flex-basis: auto; }
+  .poker-table { height: 360px; min-height: 0; border-width: 8px; border-radius: 100px; }
+  .poker-table[data-revealed='true'] { height: 400px; }
+  .opp-seat-capsule { width: 128px; padding: 6px; gap: 4px; border-radius: 12px; backdrop-filter: none; }
+  .osc-header { gap: 4px; }
+  .osc-avatar-ring { width: 24px; height: 24px; font-size: 16px; }
+  .osc-name { font-size: 11px; }
+  .osc-chips-track { gap: 3px; padding: 3px 5px; }
+  .osc-chip-socket, .osc-chip-socket .poker-chip { width: 23px; height: 23px; font-size: 10px; }
+  .osc-cards-fanned .playing-card.card-sm { width: 32px; height: 46px; }
+  .osc-hand-rank-name { font-size: 10px; min-height: 0; }
+  .table-betting-line { inset: 26px 32px; }
+  .tfw-title { font-size: 32px; letter-spacing: 6px; }
+  .tfw-emblem { font-size: 24px; letter-spacing: 4px; }
+  .tfw-sub { font-size: 8px; letter-spacing: 2px; }
+  .table-centerpiece { max-width: calc(100% - 128px); gap: 12px; padding: 0; }
+  .community-cards-row { gap: 6px; }
+  .community-cards-row .playing-card, .community-cards-row .card-slot { width: 46px; height: 68px; }
+  .zone-label { font-size: 10px; letter-spacing: .6px; }
+  .pool-hint { font-size: 11px; }
+  .chip-pool-rack { gap: 6px; padding: 8px 10px; flex-wrap: nowrap; }
+  .my-player-station { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); align-items: start; padding: 12px max(16px, env(safe-area-inset-right)) max(16px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left)); gap: 12px 20px; }
+  .my-hand-container { width: auto; }
+  .my-info-row { flex-wrap: wrap; gap: 6px; }
+  .my-avatar-name { width: 100%; flex-wrap: wrap; }
+  #btn-hide-cards { margin-left: auto; min-height: 44px; }
+  .hand-hint-bubble { max-width: 100%; font-size: 12px; padding: 4px 8px; }
+  .my-cards-row { justify-content: flex-start; }
+  .my-chips-tracker { width: auto; order: initial; padding-top: 6px; gap: 10px; }
+  .four-chips-grid { justify-content: center; gap: 12px; }
+  .tracker-title { font-size: 10px; text-align: center; letter-spacing: .5px; }
+  .my-actions-panel { grid-column: 1 / -1; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); width: 100%; order: initial; gap: 8px; }
+  .my-actions-panel .btn { width: 100%; min-height: 44px; padding: 10px; }
+  .round-status-box { grid-column: 1 / -1; grid-row: 2; text-align: center; font-size: 12px; }
+  .comm-dock-panel { height: min(360px, calc(100dvh - 24px)); max-height: calc(100dvh - 24px); bottom: 12px; }
+}
+/* Narrow desktop windows can also use the table without clipping seats. */
+@media (max-width: 600px) {
+  .poker-arena { padding-left: 62px; padding-right: 62px; }
+  .poker-table { border-radius: 80px; }
+  .opp-seat-capsule { width: 110px; }
+  .osc-chips-track { gap: 2px; padding: 3px 4px; }
+  .osc-chip-socket, .osc-chip-socket .poker-chip { width: 20px; height: 20px; }
+  .table-centerpiece { max-width: calc(100% - 110px); }
+  .community-cards-row { gap: 3px; }
+  .community-cards-row .playing-card, .community-cards-row .card-slot { width: 38px; height: 58px; }
+  .four-chips-grid { gap: 8px; }
+}
+@media (max-width: 450px) {
+  .table-topbar { grid-template-columns: 1fr; }
+  .topbar-left { grid-column: 1; grid-row: 1; }
+  .vault-alarm-tracker { grid-column: 1; grid-row: 2; justify-content: flex-start; }
+  .topbar-right { grid-row: 3; flex-wrap: wrap; }
+  .pinned-challenge-chip { grid-row: 4; }
+  .poker-arena { padding-left: 12px; padding-right: 12px; }
+  .poker-table, .poker-table[data-revealed='true'] { height: auto; padding: 12px; border-radius: 40px; }
+  .table-seats-perimeter { position: relative; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+  .opp-seat-capsule, .opp-seat-capsule[data-position^='top-'] { position: static; width: 100%; transform: none; }
+  .table-centerpiece { position: relative; top: auto; left: auto; transform: none; margin: 20px auto; max-width: 100%; }
+  .chip-pool-rack { flex-wrap: wrap; max-width: 250px; }
+  .my-player-station { grid-template-columns: 1fr; }
+  .my-chips-tracker, .my-actions-panel { grid-column: 1; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+}

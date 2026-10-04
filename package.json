@@ -1,0 +1,21 @@
+{
+  "name": "chill-and-thrill",
+  "version": "2.0.0",
+  "description": "Chill and Thrill (The Gang) - Cooperative Poker Heist Board Game (LAN Multiplayer)",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "npx nodemon server.js",
+    "test": "node --test",
+    "test:browser": "node scripts/browser-check.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "qrcode": "^1.5.4",
+    "socket.io": "^4.7.2"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.63.0",
+    "socket.io-client": "^4.8.4"
+  }
+}

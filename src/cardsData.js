@@ -1,0 +1,208 @@
+'use strict';
+
+/**
+ * 10 Thẻ Thử Thách & 10 Thẻ Chuyên Gia theo Luật chơi chính thức của The Gang
+ */
+
+const CHALLENGES = [
+  {
+    id: 1,
+    title: 'Tiếp cận nhanh',
+    icon: '⚡',
+    summary: 'Bỏ chip trắng ở Vòng 1. Chia bài tẩy và chuyển thẳng sang Vòng 2 (Flop).',
+    rule: 'Bỏ các chip trắng cho vụ cướp này. Trong vòng đầu tiên, chia các lá bài tẩy và chuyển thẳng sang Vòng 2.',
+    skipWhiteChips: true,
+  },
+  {
+    id: 2,
+    title: 'Cảm biến tiếng ồn',
+    icon: '🔊',
+    summary: 'Chip 1 sao (⭐) không thể đổi chủ sau khi đã được lấy ở Vòng 1, 2, 3.',
+    rule: 'Lật mặt tối các chip 1 sao cho Vòng 1, 2 và 3. Những chip này không thể đổi chủ sau khi đã được lấy khỏi giữa bàn.',
+    lockMinChip: true,
+  },
+  {
+    id: 3,
+    title: 'Cảm biến chuyển động',
+    icon: '🏃',
+    summary: 'Nếu bài chung Vòng 2 có J, Q hoặc K: Người có chip trắng 1 sao phải đổi bài tẩy mới!',
+    rule: 'Nếu ít nhất một trong các lá bài chung ở Vòng 2 là J, Q hoặc K: Người chơi có chip trắng 1 sao (từ Vòng 1) phải đặt các lá bài tẩy vào chồng bài bỏ và rút các lá bài tẩy mới từ bộ bài.',
+    triggerOnFlopFace: true,
+  },
+  {
+    id: 4,
+    title: 'Quét võng mạc',
+    icon: '👁️',
+    summary: 'Trước khi so bài, cả đội phải đoán đúng 1 giá trị bài tẩy của người có chip đỏ cao nhất!',
+    rule: 'Trước khi người có chip đỏ cao nhất lật bài trong so bài: Các người chơi khác phải hội ý và đồng ý về một giá trị bài (2 đến A) mà họ tin người này có ít nhất 1 lá trong bài tẩy. Nếu đoán sai, vụ cướp thất bại ngay cả khi thứ tự chip đúng!',
+    requiresGuessValue: true,
+  },
+  {
+    id: 5,
+    title: 'Thoát hiểm vội vàng',
+    icon: '⏳',
+    summary: 'Bỏ chia chip cam ở Vòng 3. Lật lá thứ 4 và chuyển thẳng sang Vòng 4 (River).',
+    rule: 'Không có việc chia chip cam ở Vòng 3. Chỉ cần lật lá bài chung thứ tư và chuyển thẳng sang Vòng 4.',
+    skipOrangeChips: true,
+  },
+  {
+    id: 6,
+    title: 'Trục thông gió',
+    icon: '💨',
+    summary: 'Chip có giá trị cao nhất (⭐ Max) không thể đổi chủ sau khi đã lấy ở Vòng 1, 2, 3.',
+    rule: 'Lật mặt tối các chip có giá trị cao nhất cho Vòng 1, 2 và 3. Những chip này không thể đổi chủ sau lần đầu tiên được lấy khỏi giữa bàn.',
+    lockMaxChip: true,
+  },
+  {
+    id: 7,
+    title: 'Dây laser bẫy',
+    icon: '🚨',
+    summary: 'Nếu KHÔNG có lá bài chung nào ở Vòng 2 là J, Q, K: Người có chip trắng cao nhất đổi bài tẩy mới!',
+    rule: 'Nếu không có lá bài chung nào ở Vòng 2 là J, Q hoặc K: Người chơi có chip trắng giá trị cao nhất (từ Vòng 1) phải đặt các lá bài tẩy vào chồng bài bỏ và rút các lá bài tẩy mới từ bộ bài.',
+    triggerOnFlopNoFace: true,
+  },
+  {
+    id: 8,
+    title: 'Mất điện',
+    icon: '🌑',
+    summary: 'Đầu mỗi vòng mới (2, 3, 4), tất cả người chơi phải thu hồi/giấu các chip của vòng trước.',
+    rule: 'Vào đầu Vòng 2, bỏ chip Vòng 1. Đầu Vòng 3, bỏ chip Vòng 2. Đầu Vòng 4, bỏ chip Vòng 3. Mọi người phải tự ghi nhớ chip của nhau!',
+    blindPreviousChips: true,
+  },
+  {
+    id: 9,
+    title: 'Quét vân tay',
+    icon: '🖐️',
+    summary: 'Trước khi so bài, cả đội phải đoán đúng thứ hạng bộ bài của người có chip đỏ cao nhất!',
+    rule: 'Trước khi người có chip đỏ cao nhất lật bài trong so bài: Các người chơi khác phải hội ý và đồng ý về thứ hạng bài (từ High Card đến Royal Flush) của người này. Nếu đoán sai, vụ cướp thất bại ngay cả khi thứ tự chip đúng!',
+    requiresGuessRank: true,
+  },
+  {
+    id: 10,
+    title: 'Camera an ninh',
+    icon: '📹',
+    summary: 'Mỗi người chơi được chia 3 lá bài tẩy thay vì 2 lá! Tìm 5 lá bài tốt nhất từ 3 tẩy + 5 chung.',
+    rule: 'Thay vì 2 lá bài tẩy, tất cả chơi với 3 lá! Để so bài, xây dựng kết hợp 5 lá tốt nhất từ 3 lá bài tẩy và 5 lá bài chung.',
+    threeHoleCards: true,
+  },
+];
+
+const SPECIALISTS = [
+  {
+    id: 1,
+    title: 'Người cung cấp thông tin',
+    icon: '🕵️',
+    summary: 'Một người chơi bí mật cho một người khác xem chính xác 1 trong các lá bài tẩy của mình.',
+    rule: 'Quyết định ai trong số bạn sẽ bí mật cho một người chơi khác xem chính xác một trong các lá bài tẩy của mình. Người này không được tiết lộ cho ai khác.',
+  },
+  {
+    id: 2,
+    title: 'Tài xế thoát hiểm',
+    icon: '🏎️',
+    summary: 'Một người chơi công bố thứ hạng bộ bài hiện tại của mình (ví dụ: "Tôi có Một Đôi").',
+    rule: 'Quyết định ai trong số bạn sẽ chia sẻ thứ hạng bài hiện tại của mình (bài tẩy + bài chung hiện có) với những người còn lại (không chia sẻ chi tiết đó là đôi nào hay giá trị gì).',
+  },
+  {
+    id: 3,
+    title: 'Nhà đầu tư',
+    icon: '💼',
+    summary: 'Sau khi chia bài tẩy Vòng 1, mỗi người chơi nói họ có bao nhiêu lá bài hình (J, Q, K).',
+    rule: 'Sau khi các lá bài tẩy đã được chia ở Vòng 1, mỗi người chơi sẽ nói họ có bao nhiêu lá bài hình (J, Q, K: từ 0 đến 2 lá).',
+    autoRevealFaceCount: true,
+  },
+  {
+    id: 4,
+    title: 'Kẻ chủ mưu',
+    icon: '🧠',
+    summary: 'Một người chơi công bố số lượng lá bài có một giá trị cụ thể mà họ đang giữ.',
+    rule: 'Quyết định ai trong số bạn sẽ chia sẻ với mọi người rằng họ có bao nhiêu lá bài có giá trị cụ thể trong tay (ví dụ: Danny có một lá 9).',
+  },
+  {
+    id: 5,
+    title: 'Tin tặc',
+    icon: '💻',
+    summary: 'Một người chơi rút thêm 1 lá từ bộ bài và bỏ đi 1 lá bài tẩy không cần thiết.',
+    rule: 'Quyết định ai trong số bạn sẽ rút một lá bài từ bộ bài và thêm nó vào tay mình. Sau đó, người này đặt một trong các lá bài tẩy của mình vào chồng bài bỏ.',
+  },
+  {
+    id: 6,
+    title: 'Điều phối viên',
+    icon: '🔄',
+    summary: 'Mỗi người chọn 1 lá bài tẩy chuyển đồng thời cho người chơi bên trái.',
+    rule: 'Sau khi chia bài tẩy ở Vòng 1, mỗi người chọn một trong các lá bài tẩy của mình và đồng thời chuyển cho người chơi bên trái.',
+  },
+  {
+    id: 7,
+    title: 'Jack',
+    icon: '🃏',
+    summary: 'Một người nhận lá bài chuyên gia Jack (tính là J, không chất) thay cho 1 lá bài tẩy.',
+    rule: 'Quyết định ai sẽ thêm lá bài chuyên gia Jack vào bài tẩy và bỏ 1 lá cũ. Jack tính là lá J (Bồi) không có chất (không dùng tạo Thùng).',
+  },
+  {
+    id: 8,
+    title: 'Thiên tài toán học',
+    icon: '📐',
+    summary: 'Ở Vòng 1, mọi người công bố tổng điểm bài tẩy (2-10 tính 2-10, J/Q/K tính 10, A tính 11).',
+    rule: 'Sau khi chia bài Vòng 1, mỗi người nói tổng giá trị của các lá bài tẩy của mình (2-10 tính giá trị mặt, J/Q/K = 10, A = 11).',
+    autoRevealPointSum: true,
+  },
+  {
+    id: 9,
+    title: 'Nghệ sĩ lừa đảo',
+    icon: '🎭',
+    summary: 'Sau khi xem bài Vòng 1, gom tất cả bài tẩy lại xáo trộn và chia lại cho mọi người!',
+    rule: 'Sau khi chia bài tẩy ở Vòng 1 và mọi người đã xem bài của mình: đặt chúng úp lại thành chồng, xáo trộn và chia lại. Bạn sẽ nhớ 2 lá cũ giờ đang ở tay ai!',
+  },
+  {
+    id: 10,
+    title: 'Cơ bắp',
+    icon: '💪',
+    summary: 'Người giữ thẻ này sẽ thắng bất kỳ người chơi nào khác có bài cùng thứ hạng trong so bài!',
+    rule: 'Quyết định ai lấy lá Cơ bắp. Trong màn so bài, người chơi này sẽ thắng bất kỳ người chơi nào khác có bài cùng thứ hạng (ví dụ cùng Đôi sẽ thành Đôi mạnh nhất).',
+    muscleBonus: true,
+  },
+];
+
+const GAME_MODES = {
+  BASIC: {
+    id: 'BASIC',
+    name: 'Cơ bản',
+    badge: 'Dành cho người mới',
+    desc: '3 Két sắt, 3 Báo động. Không sử dụng Thẻ Thử thách hay Chuyên gia. Lý tưởng để làm quen với nhịp điệu poker hợp tác!',
+    maxVaults: 3,
+    maxAlarms: 3,
+    useCards: false,
+  },
+  ADVANCED: {
+    id: 'ADVANCED',
+    name: 'Nâng cao',
+    badge: 'Chuẩn The Gang',
+    desc: '3 Két, 3 Báo động. Thắng vụ cướp mở Thẻ Thử thách (+khó). Thất bại mở Thẻ Chuyên gia (+trợ giúp). Thay đổi liên tục!',
+    maxVaults: 3,
+    maxAlarms: 3,
+    useCards: true,
+  },
+  EXPERT: {
+    id: 'EXPERT',
+    name: 'Chuyên nghiệp',
+    badge: 'Thử thách cao',
+    desc: '1 Thẻ Thử thách vĩnh viễn kích hoạt từ đầu ván cho mọi vụ cướp! Vẫn nhận thêm Thử thách/Chuyên gia mỗi vụ cướp.',
+    maxVaults: 3,
+    maxAlarms: 3,
+    useCards: true,
+    permanentChallenge: true,
+  },
+  MASTER_THIEF: {
+    id: 'MASTER_THIEF',
+    name: 'Siêu trộm',
+    badge: 'Cực khó · Đỉnh cao',
+    desc: 'Chỉ có 2 Báo động là thua cuộc! Không có Chuyên gia giúp đỡ. Luôn có 2 Thẻ Thử thách hoạt động đồng thời!',
+    maxVaults: 3,
+    maxAlarms: 2,
+    useCards: true,
+    doubleChallenges: true,
+    noSpecialists: true,
+  },
+};
+
+module.exports = { CHALLENGES, SPECIALISTS, GAME_MODES };

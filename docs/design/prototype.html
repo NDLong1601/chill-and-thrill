@@ -1,0 +1,337 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#f6f0e6">
+  <title>GANG LAN · Prototype M0</title>
+  <style>
+    :root {
+      --bg: #f6f0e6;
+      --bg-soft: #fffaf2;
+      --panel: rgba(255, 252, 246, .84);
+      --panel-strong: #fffdf8;
+      --ink: #18201e;
+      --muted: #66706b;
+      --line: #e6dbca;
+      --accent: #c58b35;
+      --accent-strong: #9f6722;
+      --accent-soft: #f3dfb8;
+      --good: #27775e;
+      --danger: #b54a42;
+      --shadow: 0 22px 60px rgba(83, 62, 33, .12);
+      --radius: 22px;
+      --max: 1180px;
+      font-family: "Trebuchet MS", "Segoe UI", sans-serif;
+      color: var(--ink);
+      background: var(--bg);
+    }
+
+    body[data-theme="thrill"] {
+      --bg: #181517;
+      --bg-soft: #211a1c;
+      --panel: rgba(37, 28, 31, .9);
+      --panel-strong: #2a2023;
+      --ink: #fbf2e7;
+      --muted: #c2b4ae;
+      --line: #4b3737;
+      --accent: #e1a84d;
+      --accent-strong: #f1c36c;
+      --accent-soft: #4c3427;
+      --good: #65c49d;
+      --danger: #ef8175;
+      --shadow: 0 24px 70px rgba(0, 0, 0, .28);
+    }
+
+    * { box-sizing: border-box; }
+    html { min-width: 300px; scroll-behavior: smooth; }
+    body { margin: 0; min-height: 100vh; background: radial-gradient(circle at 15% 5%, rgba(197, 139, 53, .12), transparent 34rem), var(--bg); transition: background .25s, color .25s; }
+    body[data-theme="thrill"] { background: radial-gradient(circle at 86% 10%, rgba(148, 51, 47, .34), transparent 28rem), var(--bg); }
+    button, input, select { font: inherit; }
+    button { cursor: pointer; }
+    button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible { outline: 3px solid var(--accent); outline-offset: 3px; }
+    a { color: inherit; text-decoration: none; }
+
+    .prototype-banner { background: #202c28; color: #f7ead7; padding: 8px 18px; text-align: center; font-size: 12px; letter-spacing: .06em; }
+    .prototype-banner strong { color: #f3c56d; }
+    .shell-header { position: sticky; top: 0; z-index: 10; border-bottom: 1px solid var(--line); background: color-mix(in srgb, var(--bg-soft) 88%, transparent); backdrop-filter: blur(16px); }
+    .header-inner { width: min(var(--max), calc(100% - 36px)); min-height: 74px; margin: auto; display: flex; align-items: center; gap: 28px; }
+    .brand { display: inline-flex; align-items: center; gap: 10px; font-weight: 900; letter-spacing: .08em; white-space: nowrap; }
+    .brand-mark { width: 34px; height: 34px; display: grid; place-items: center; border-radius: 12px; color: #fff8e9; background: linear-gradient(145deg, var(--accent-strong), var(--accent)); box-shadow: 0 8px 20px rgba(159, 103, 34, .24); }
+    .brand small { display: block; color: var(--muted); font-size: 10px; font-weight: 700; letter-spacing: .16em; }
+    .main-nav { display: flex; gap: 4px; flex: 1; }
+    .nav-link { border: 0; color: var(--muted); background: transparent; min-height: 44px; padding: 8px 12px; border-radius: 12px; font-weight: 700; }
+    .nav-link:hover, .nav-link.active { background: var(--accent-soft); color: var(--ink); }
+    .profile-chip { display: flex; align-items: center; gap: 9px; border: 1px solid var(--line); border-radius: 999px; padding: 5px 11px 5px 6px; background: var(--panel); font-size: 13px; font-weight: 800; }
+    .avatar { width: 30px; height: 30px; display: grid; place-items: center; border-radius: 50%; background: var(--accent-soft); }
+    .balance { color: var(--accent-strong); }
+
+    main { width: min(var(--max), calc(100% - 36px)); margin: 0 auto; padding: 38px 0 72px; }
+    .eyebrow { color: var(--accent-strong); font-size: 12px; font-weight: 900; letter-spacing: .16em; text-transform: uppercase; }
+    h1, h2, h3, p { margin-top: 0; }
+    h1 { max-width: 760px; margin-bottom: 16px; font-size: clamp(36px, 6vw, 76px); line-height: .98; letter-spacing: -.055em; }
+    h2 { font-size: clamp(28px, 4vw, 48px); letter-spacing: -.04em; margin-bottom: 10px; }
+    h3 { margin-bottom: 8px; font-size: 19px; }
+    .lead { max-width: 620px; color: var(--muted); font-size: clamp(16px, 2vw, 20px); line-height: 1.55; }
+    .muted { color: var(--muted); }
+    .tiny { color: var(--muted); font-size: 12px; line-height: 1.45; }
+    .tag { display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--line); border-radius: 999px; padding: 7px 11px; color: var(--muted); font-size: 11px; font-weight: 900; letter-spacing: .08em; text-transform: uppercase; }
+    .tag.good { color: var(--good); border-color: color-mix(in srgb, var(--good) 35%, var(--line)); background: color-mix(in srgb, var(--good) 9%, transparent); }
+    .tag.warn { color: var(--danger); border-color: color-mix(in srgb, var(--danger) 35%, var(--line)); background: color-mix(in srgb, var(--danger) 8%, transparent); }
+    .button-row { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+    .btn { min-height: 46px; border: 1px solid transparent; border-radius: 13px; padding: 11px 17px; color: var(--ink); background: transparent; font-weight: 900; transition: transform .15s, box-shadow .15s, background .15s; }
+    .btn:hover { transform: translateY(-1px); }
+    .btn.primary { color: #fffaf0; background: linear-gradient(135deg, var(--accent-strong), var(--accent)); box-shadow: 0 12px 24px rgba(159, 103, 34, .22); }
+    .btn.secondary { border-color: var(--line); background: var(--panel); }
+    .btn.ghost { color: var(--muted); }
+    .btn.danger { color: var(--danger); border-color: color-mix(in srgb, var(--danger) 30%, var(--line)); }
+    .btn:disabled { cursor: not-allowed; opacity: .46; transform: none; }
+
+    .hero { display: grid; grid-template-columns: minmax(0, 1.14fr) minmax(320px, .86fr); align-items: stretch; gap: 28px; margin-bottom: 46px; }
+    .hero-copy { padding: 22px 0 10px; }
+    .hero-copy .button-row { margin: 28px 0 18px; }
+    .hero-note { display: flex; align-items: center; gap: 9px; color: var(--muted); font-size: 13px; }
+    .hero-note .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--good); box-shadow: 0 0 0 6px color-mix(in srgb, var(--good) 14%, transparent); }
+    .join-card { align-self: center; padding: 26px; border: 1px solid var(--line); border-radius: 26px; background: var(--panel); box-shadow: var(--shadow); }
+    .join-card h3 { display: flex; justify-content: space-between; gap: 14px; }
+    .join-card form { display: flex; gap: 8px; margin-top: 16px; }
+    .input { width: 100%; min-height: 46px; border: 1px solid var(--line); border-radius: 12px; padding: 10px 13px; color: var(--ink); background: var(--panel-strong); }
+    .code-input { max-width: 150px; text-transform: uppercase; letter-spacing: .18em; font-weight: 900; }
+    .error-text { min-height: 18px; margin: 8px 0 0; color: var(--danger); font-size: 12px; }
+    .section-head { display: flex; justify-content: space-between; gap: 18px; align-items: end; margin-bottom: 16px; }
+    .section-head p { margin-bottom: 0; color: var(--muted); }
+    .category-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; margin-bottom: 48px; }
+    .category-card { position: relative; overflow: hidden; min-height: 255px; padding: 28px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--panel); box-shadow: var(--shadow); }
+    .category-card::after { content: ""; position: absolute; width: 170px; height: 170px; right: -40px; bottom: -65px; border-radius: 50%; background: var(--accent-soft); opacity: .8; }
+    .category-card.thrill::after { background: rgba(161, 64, 54, .24); }
+    .category-icon { font-size: 36px; margin-bottom: 16px; }
+    .category-card h3 { font-size: 28px; letter-spacing: -.04em; }
+    .category-card p { max-width: 360px; color: var(--muted); line-height: 1.5; }
+    .category-card .button-row { position: relative; z-index: 1; margin-top: 24px; }
+    .quick-grid { display: grid; grid-template-columns: 1.1fr .9fr; gap: 18px; }
+    .panel { padding: 22px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--panel); }
+    .room-preview { display: flex; gap: 14px; align-items: center; padding: 14px; border: 1px solid var(--line); border-radius: 16px; background: var(--panel-strong); }
+    .room-preview .room-badge { width: 46px; height: 46px; display: grid; place-items: center; border-radius: 14px; background: var(--accent-soft); font-size: 22px; }
+    .room-preview strong { display: block; }
+    .room-preview .button-row { margin-left: auto; }
+    .status-gallery { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 8px; }
+    .mini-state { min-height: 78px; padding: 10px; border-radius: 13px; background: var(--panel-strong); border: 1px solid var(--line); }
+    .mini-state b { display: block; margin-bottom: 6px; font-size: 12px; }
+    .mini-state span { color: var(--muted); font-size: 11px; line-height: 1.3; }
+    .mini-state.offline b { color: var(--danger); }
+    .mini-state.loading b { color: var(--accent-strong); }
+    .mini-state.empty b { color: var(--muted); }
+    .mini-state.chip b { color: var(--danger); }
+    .mini-state.soon b { color: var(--good); }
+
+    .page-head { display: flex; justify-content: space-between; align-items: end; gap: 20px; margin-bottom: 28px; }
+    .game-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+    .game-card { display: flex; flex-direction: column; min-height: 310px; padding: 20px; border: 1px solid var(--line); border-radius: 20px; background: var(--panel); box-shadow: 0 12px 30px rgba(0,0,0,.04); }
+    .game-card .game-icon { width: 54px; height: 54px; display: grid; place-items: center; margin-bottom: 18px; border-radius: 17px; color: #fff7e7; background: linear-gradient(145deg, var(--accent-strong), var(--accent)); font-size: 26px; }
+    .game-card h3 { font-size: 22px; }
+    .game-card p { color: var(--muted); line-height: 1.45; }
+    .game-card .game-meta { display: flex; flex-wrap: wrap; gap: 7px; margin: auto 0 16px; }
+    .game-meta span { padding: 6px 8px; border-radius: 8px; color: var(--muted); background: var(--accent-soft); font-size: 11px; font-weight: 700; }
+    .game-card .btn { width: 100%; }
+    .detail-layout { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(300px, .75fr); gap: 20px; align-items: start; }
+    .detail-hero { padding: 30px; border: 1px solid var(--line); border-radius: 26px; background: var(--panel); box-shadow: var(--shadow); }
+    .detail-title { display: flex; gap: 16px; align-items: center; margin: 18px 0; }
+    .detail-icon { width: 72px; height: 72px; display: grid; place-items: center; border-radius: 22px; background: var(--accent-soft); font-size: 38px; }
+    .detail-title h1 { margin: 0; font-size: clamp(36px, 5vw, 58px); }
+    .rule-list { display: grid; gap: 10px; margin: 22px 0 28px; padding: 0; list-style: none; }
+    .rule-list li { display: flex; gap: 10px; padding: 12px; border-radius: 13px; background: var(--panel-strong); color: var(--muted); line-height: 1.4; }
+    .rule-list li::before { content: "✓"; color: var(--good); font-weight: 900; }
+    .side-stack { display: grid; gap: 16px; }
+    .spec-list { display: grid; gap: 11px; margin: 0; }
+    .spec-list div { display: flex; justify-content: space-between; gap: 12px; padding-bottom: 10px; border-bottom: 1px dashed var(--line); }
+    .spec-list div:last-child { border-bottom: 0; padding-bottom: 0; }
+    .spec-list dt { color: var(--muted); font-size: 13px; }
+    .spec-list dd { margin: 0; text-align: right; font-weight: 900; }
+    .room-list { display: grid; gap: 10px; }
+    .open-room { display: flex; align-items: center; gap: 10px; padding: 11px; border: 1px solid var(--line); border-radius: 13px; background: var(--panel-strong); }
+    .open-room strong { display: block; }
+    .open-room small { color: var(--muted); }
+    .open-room .btn { min-height: 38px; padding: 7px 10px; margin-left: auto; font-size: 12px; }
+    .form-layout { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 20px; }
+    .form-panel { padding: 28px; border: 1px solid var(--line); border-radius: 24px; background: var(--panel); box-shadow: var(--shadow); }
+    .field { display: grid; gap: 7px; margin-bottom: 16px; }
+    .field label { font-size: 13px; font-weight: 900; }
+    .field small { color: var(--muted); font-size: 12px; }
+    .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .room-code-big { display: inline-flex; padding: 8px 13px; border-radius: 11px; color: var(--accent-strong); background: var(--accent-soft); font-size: 22px; letter-spacing: .18em; font-weight: 900; }
+    .summary-list { display: grid; gap: 10px; padding: 0; margin: 18px 0 0; list-style: none; }
+    .summary-list li { display: flex; gap: 8px; color: var(--muted); font-size: 13px; line-height: 1.4; }
+    .summary-list li::before { content: "•"; color: var(--accent-strong); font-size: 18px; line-height: 12px; }
+    .waiting-layout { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 18px; align-items: start; }
+    .waiting-main { padding: 28px; border: 1px solid var(--line); border-radius: 24px; background: var(--panel); box-shadow: var(--shadow); }
+    .waiting-title { display: flex; justify-content: space-between; gap: 14px; align-items: start; margin-bottom: 20px; }
+    .seat-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+    .seat { display: flex; align-items: center; gap: 11px; min-height: 72px; padding: 12px; border: 1px solid var(--line); border-radius: 15px; background: var(--panel-strong); }
+    .seat.is-empty { border-style: dashed; color: var(--muted); }
+    .seat .avatar { flex: 0 0 auto; width: 38px; height: 38px; }
+    .seat strong { display: block; }
+    .seat small { color: var(--muted); }
+    .seat .ready { margin-left: auto; color: var(--good); font-size: 11px; font-weight: 900; }
+    .qr-box { width: 148px; height: 148px; margin: 18px auto; border: 10px solid #fff; border-radius: 13px; background: repeating-linear-gradient(45deg, #202524 0 5px, #fff 5px 10px), repeating-linear-gradient(-45deg, transparent 0 7px, rgba(255,255,255,.9) 7px 11px); box-shadow: 0 0 0 1px var(--line); }
+    .room-side .button-row { flex-direction: column; align-items: stretch; }
+    .room-side .button-row .btn { width: 100%; }
+    .connection-strip { display: flex; align-items: center; gap: 8px; padding: 11px 13px; border-radius: 13px; color: var(--good); background: color-mix(in srgb, var(--good) 10%, transparent); font-size: 12px; font-weight: 800; }
+    .connection-strip.offline { color: var(--danger); background: color-mix(in srgb, var(--danger) 10%, transparent); }
+    .demo-note { margin: 18px 0 0; padding: 12px 14px; border-left: 3px solid var(--accent); color: var(--muted); background: var(--accent-soft); font-size: 12px; line-height: 1.5; }
+    .toast { position: fixed; right: 18px; bottom: 18px; z-index: 30; max-width: min(360px, calc(100% - 36px)); padding: 13px 16px; border: 1px solid var(--line); border-radius: 14px; color: var(--ink); background: var(--panel-strong); box-shadow: var(--shadow); font-size: 13px; font-weight: 800; transform: translateY(20px); opacity: 0; pointer-events: none; transition: .2s; }
+    .toast.show { transform: translateY(0); opacity: 1; }
+    .footer-note { margin-top: 40px; color: var(--muted); font-size: 12px; text-align: center; }
+
+    @media (max-width: 850px) {
+      .hero, .detail-layout, .form-layout, .waiting-layout, .quick-grid { grid-template-columns: 1fr; }
+      .hero { margin-bottom: 34px; }
+      .game-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .room-side { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+      .room-side .qr-box { margin: 0 auto; }
+    }
+    @media (max-width: 620px) {
+      .prototype-banner { font-size: 10px; }
+      .header-inner, main { width: min(100% - 24px, var(--max)); }
+      .header-inner { min-height: 64px; gap: 10px; }
+      .brand { font-size: 13px; }
+      .main-nav { order: 3; width: 100%; overflow-x: auto; display: none; }
+      .profile-chip { margin-left: auto; }
+      .profile-chip .balance { display: none; }
+      main { padding-top: 24px; }
+      h1 { font-size: clamp(37px, 13vw, 62px); }
+      .hero-copy { padding-top: 8px; }
+      .join-card, .detail-hero, .form-panel, .waiting-main { padding: 20px; }
+      .category-grid, .game-grid, .seat-grid { grid-template-columns: 1fr; }
+      .category-card { min-height: 220px; }
+      .section-head, .page-head, .waiting-title { align-items: start; flex-direction: column; }
+      .status-gallery { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .status-gallery .mini-state:last-child { grid-column: span 2; }
+      .join-card form { display: grid; grid-template-columns: 1fr auto; }
+      .code-input { max-width: none; }
+      .field-row { grid-template-columns: 1fr; gap: 0; }
+      .room-side { display: block; }
+      .room-side .qr-box { margin: 18px auto; }
+    }
+    @media (orientation: landscape) and (max-height: 520px) {
+      .prototype-banner { padding: 5px 12px; }
+      .header-inner { min-height: 56px; }
+      main { padding-top: 18px; }
+      .hero { grid-template-columns: 1.2fr .8fr; margin-bottom: 24px; }
+      .hero-copy { padding: 0; }
+      h1 { font-size: clamp(34px, 7vw, 56px); }
+      .join-card { padding: 18px; }
+      .join-card form { margin-top: 8px; }
+      .category-card { min-height: 180px; padding: 20px; }
+      .category-card .button-row { margin-top: 12px; }
+    }
+  </style>
+</head>
+<body data-theme="casual">
+  <div class="prototype-banner"><strong>PROTOTYPE M0</strong> · Dữ liệu minh họa, không kết nối server, không tạo phòng thật hoặc giao dịch chip.</div>
+  <header class="shell-header">
+    <div class="header-inner">
+      <button class="brand btn ghost" data-nav="/" aria-label="Về trang chủ"><span class="brand-mark">✦</span><span>GANG LAN <small>ONE ROOM · MANY GAMES</small></span></button>
+      <nav class="main-nav" aria-label="Điều hướng chính">
+        <button class="nav-link" data-nav="/">Trang chủ</button>
+        <button class="nav-link" data-nav="/play/casual">Giải trí</button>
+        <button class="nav-link" data-nav="/play/thrill">Kịch tính</button>
+        <button class="nav-link" data-nav="/missions">Nhiệm vụ</button>
+      </nav>
+      <button class="profile-chip" data-nav="/profile"><span class="avatar">🕶️</span><span>Minh <span class="balance">· 1.000 chip</span></span></button>
+    </div>
+  </header>
+  <main id="app" aria-live="polite"></main>
+  <div id="toast" class="toast" role="status"></div>
+
+  <script>
+    const GAMES = {
+      'the-gang': { category: 'casual', title: 'The Gang', icon: '🏦', badge: 'Đang chạy', status: 'playable', players: '2–6 người', level: 'Phối hợp', description: 'Cùng đọc vị sức mạnh bài, xếp chip và phá két trước khi báo động vang lên.', variant: 'Advanced', rules: ['Bài tẩy và vai trò được server giữ kín theo từng ghế.', 'Bốn vòng chip: Pre-Flop, Flop, Turn và River.', 'Một phòng giữ nguyên game; chơi tiếp không đổi luật hay mã phòng.'] },
+      'uno': { category: 'casual', title: 'UNO', icon: '🃏', badge: 'M2 · sắp triển khai', status: 'design', players: '2–4 người', level: 'Nhanh · vui', description: 'Đánh lá cùng màu hoặc ký hiệu, dùng Wild đúng lúc và nhớ báo UNO.', variant: 'Classic local v1', rules: ['Bài trên tay chỉ gửi cho đúng người chơi.', 'Wild, Draw Two và cửa sổ báo UNO do server xác thực.', 'Không dùng chip kinh tế để vào bàn Giải trí.'] },
+      'bang': { category: 'casual', title: 'BANG!', icon: '🎯', badge: 'Sắp có', status: 'coming_soon', players: '4–7 người', level: 'Vai ẩn', description: 'Một thị trấn miền Tây, những vai trò bí mật và các pha phản ứng ngoài lượt.', variant: 'Base local v1', rules: ['Vai ẩn không xuất hiện trong state của người khác.', 'Chỉ bộ cơ bản; chưa mở rộng nhân vật hay phụ bản.', 'Bảng vai và điều kiện thắng phải chốt trước M6C.'] },
+      'poker': { category: 'thrill', title: 'Poker', icon: '♠', badge: 'M5 · thiết kế', status: 'design', players: '2–9 người', level: 'Đấu chip', description: 'Texas Hold’em No-Limit với stack, pot, side pot và kết quả được server đối soát.', variant: 'Hold’em NL local v1', wallet: true, rules: ['Buy-in chuyển chip vào stack; không âm và không dùng một khoản hai lần.', 'All-in, side pot, hòa bài và chip lẻ là state server.', 'Disconnect không tự hoàn chip giữa ván.'] },
+      'tien-len': { category: 'thrill', title: 'Tiến lên', icon: '♣', badge: 'M4 · ưu tiên', status: 'design', players: '2–4 người', level: 'Đấu chip', description: 'Tiến lên miền Nam local v1: đọc tổ hợp, chặn đúng cửa và về nhất.', variant: 'South v1', wallet: true, rules: ['Bộ 52 lá, lượt và tổ hợp do server xác thực.', 'Mức giữ đề xuất 100 chip/người ở bàn nhập môn.', 'Tới trắng, đền và phạt phức tạp chưa bật khi chưa có cận trên.'] },
+      'sam-loc': { category: 'thrill', title: 'Sâm lốc', icon: '🔥', badge: 'M6A · sau', status: 'coming_soon', players: '2–4 người', level: 'Báo Sâm', description: 'Một biến thể riêng với báo Sâm, chặn Sâm và bảng kết quả rõ ràng.', variant: 'Sam local v1', wallet: true, rules: ['Cửa sổ báo Sâm phải được server ghi nhận.', 'Chỉ bật chip sau khi tính được trách nhiệm tối đa.', 'Không coi đây là Tiến lên phiên bản khác.'] },
+      'phom': { category: 'thrill', title: 'Phỏm', icon: '♦', badge: 'M6B · sau', status: 'coming_soon', players: '2–4 người', level: 'Đấu chip', description: 'Bốc, ăn, đánh, hạ và gửi bài trong một variant local có version.', variant: 'Phom local v1', wallet: true, rules: ['Bài đối thủ và nọc chưa lật không lộ qua socket.', 'Ù, móm, ăn chốt và đền là kết quả riêng của ruleset.', 'Chưa cho tạo phòng cho tới khi bảng tính hoàn tất.'] }
+    };
+    const state = { roomStarted: false, ready: false };
+    const $ = (selector) => document.querySelector(selector);
+    const esc = (value) => String(value).replace(/[&<>"']/g, (c) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+    const path = () => decodeURIComponent(location.hash.replace(/^#/, '') || '/');
+    const gameFromPath = () => Object.keys(GAMES).find((id) => path().includes('/' + id)) || 'the-gang';
+    function navigate(next) { location.hash = next; }
+    function notify(message) { const el = $('#toast'); el.textContent = message; el.classList.add('show'); clearTimeout(notify.timer); notify.timer = setTimeout(() => el.classList.remove('show'), 2600); }
+    function themeFor(route) { document.body.dataset.theme = route.includes('thrill') || ['poker','tien-len','sam-loc','phom'].some((x) => route.includes(x)) ? 'thrill' : 'casual'; }
+    function statusTag(game) { return `<span class="tag ${game.status === 'playable' ? 'good' : game.status === 'coming_soon' ? 'warn' : ''}">${game.status === 'playable' ? '● ' : ''}${esc(game.badge)}</span>`; }
+    function gameCard(id) {
+      const game = GAMES[id];
+      const canOpen = game.status !== 'coming_soon';
+      return `<article class="game-card">
+        <div class="game-icon">${game.icon}</div>${statusTag(game)}
+        <h3>${game.title}</h3><p>${game.description}</p>
+        <div class="game-meta"><span>${game.players}</span><span>${game.level}</span>${game.wallet ? '<span>Ví chip</span>' : '<span>Không cần chip</span>'}</div>
+        <button class="btn ${canOpen ? 'primary' : 'secondary'}" ${canOpen ? `data-nav="/games/${id}"` : 'disabled'}>${game.status === 'coming_soon' ? 'Sắp có' : 'Xem game →'}</button>
+      </article>`;
+    }
+    function shellTitle(title, sub) { return `<div class="page-head"><div><span class="eyebrow">${sub}</span><h2>${title}</h2></div><button class="btn secondary" data-nav="/">← Về trang chủ</button></div>`; }
+    function renderHome() {
+      return `<section class="hero"><div class="hero-copy"><span class="eyebrow">Local game portal · WiFi là đủ</span><h1>Một bàn. Nhiều game. Cả nhóm cùng vào.</h1><p class="lead">Chọn một phong cách, tạo phòng mới hoặc nhập mã từ bạn bè. Giao diện chung nhẹ nhàng cho mọi màn hình; luật, bài và chip vẫn nằm đúng nơi: trên server.</p><div class="button-row"><button class="btn primary" data-nav="/play/casual">🎲 Khám phá Giải trí</button><button class="btn secondary" data-nav="/play/thrill">♠ Xem Kịch tính</button></div><div class="hero-note"><span class="dot"></span> Máy chủ LAN hoạt động · Không cần Internet khi chơi</div></div><aside class="join-card"><h3>Vào phòng nhanh <span class="tag">Legacy · ?room=ABCD</span></h3><p class="tiny">Nhập mã 4 ký tự hoặc mở link/QR bạn bè gửi. Bạn sẽ xem đúng game trước khi ngồi vào ghế.</p><form id="join-form"><input class="input code-input" name="room" maxlength="4" placeholder="A7K2" aria-label="Mã phòng"><button class="btn primary" type="submit">Vào phòng</button></form><p class="error-text" id="join-error"></p><p class="tiny">Demo: nhập bất kỳ mã 4 ký tự để xem phòng chờ minh họa.</p></aside></section>
+      <section><div class="section-head"><div><span class="eyebrow">Hai nhịp chơi</span><h2>Chọn cuộc vui</h2></div><p>Cùng một profile, mỗi phòng một game.</p></div><div class="category-grid"><article class="category-card"><div class="category-icon">🎉</div><span class="tag good">Casual</span><h3>Giải trí</h3><p>Chơi cùng bạn bè, không yêu cầu số dư chip. The Gang và UNO là đường vào đầu tiên.</p><div class="button-row"><button class="btn primary" data-nav="/play/casual">Mở danh mục →</button></div></article><article class="category-card thrill"><div class="category-icon">♠</div><span class="tag">Thrill</span><h3>Kịch tính</h3><p>Đấu trí bằng chip ảo local. Số dư, khoản giữ và thanh toán được server đối soát.</p><div class="button-row"><button class="btn primary" data-nav="/play/thrill">Mở danh mục →</button></div></article></div></section>
+      <section class="quick-grid"><div class="panel"><div class="section-head"><div><span class="eyebrow">Tiếp tục</span><h3>Phòng gần đây</h3></div><span class="tag">Minh họa</span></div><div class="room-preview"><div class="room-badge">🏦</div><div><strong>Phòng A7K2 · The Gang</strong><span class="tiny">3 người · Đang ở phòng chờ · host là bạn</span></div><div class="button-row"><button class="btn secondary" data-nav="/rooms/A7K2">Tiếp tục</button></div></div></div><div class="panel"><div class="section-head"><div><span class="eyebrow">Trạng thái cần thiết kế</span><h3>Không bị bỏ rơi giữa luồng</h3></div></div><div class="status-gallery"><div class="mini-state loading"><b>Loading</b><span>Đang tải danh mục…</span></div><div class="mini-state empty"><b>Empty</b><span>Chưa có phòng mở.</span></div><div class="mini-state offline"><b>Offline</b><span>Đang nối lại WiFi.</span></div><div class="mini-state chip"><b>Thiếu chip</b><span>Còn thiếu 100 chip.</span></div><div class="mini-state soon"><b>Sắp có</b><span>Game chưa playable.</span></div></div></div></section>`;
+    }
+    function renderCategory(category) {
+      const ids = Object.keys(GAMES).filter((id) => GAMES[id].category === category);
+      const title = category === 'casual' ? 'Giải trí' : 'Kịch tính';
+      const desc = category === 'casual' ? 'Nhịp chơi thân thiện, vào bàn nhanh, không cần ví chip.' : 'Các bàn đấu trí có cấu hình variant và chip ảo local rõ ràng.';
+      return `${shellTitle(title, category === 'casual' ? 'Casual · chơi cùng bạn bè' : 'Thrill · đấu bằng quyết định')}<section class="panel" style="margin-bottom:18px"><p class="lead" style="margin-bottom:0">${desc}</p></section><section class="game-grid">${ids.map(gameCard).join('')}</section><p class="footer-note">Game “Sắp có” chỉ là danh mục thiết kế; prototype không giả vờ có engine phía sau.</p>`;
+    }
+    function renderGameDetail(id) {
+      const game = GAMES[id];
+      const playable = game.status === 'playable';
+      return `${shellTitle('Chi tiết game', game.category === 'casual' ? 'Giải trí' : 'Kịch tính')}<section class="detail-layout"><article class="detail-hero"><div class="detail-title"><div class="detail-icon">${game.icon}</div><div><span class="eyebrow">${game.category === 'casual' ? 'Casual' : 'Thrill'} · ${esc(game.variant)}</span><h1>${game.title}</h1></div></div><p class="lead">${game.description}</p><div class="button-row"><button class="btn ${playable ? 'primary' : 'secondary'}" ${playable ? `data-nav="/rooms/create/${id}"` : 'disabled'}>${playable ? 'Tạo phòng minh họa →' : 'Chưa thể tạo phòng'}</button><button class="btn ghost" data-nav="/play/${game.category}">← Danh mục</button></div><h3 style="margin-top:30px">Luật nhanh</h3><ul class="rule-list">${game.rules.map((rule) => `<li>${rule}</li>`).join('')}</ul><div class="demo-note">Bản M0 chỉ trình bày thông tin. Khi triển khai, module game sẽ cấp visibleState riêng cho từng ghế và server mới quyết định action hợp lệ.</div></article><aside class="side-stack"><div class="panel">${statusTag(game)}<h3 style="margin-top:16px">Thông số bàn</h3><dl class="spec-list"><div><dt>Số người</dt><dd>${game.players}</dd></div><div><dt>Độ phức tạp</dt><dd>${game.level}</dd></div><div><dt>Variant</dt><dd>${game.variant}</dd></div><div><dt>Ví chip</dt><dd>${game.wallet ? 'Có reservation' : 'Không cần'}</dd></div></dl></div><div class="panel"><div class="section-head"><div><span class="eyebrow">LAN</span><h3>Phòng đang mở</h3></div><span class="tiny">minh họa</span></div><div class="room-list"><div class="open-room"><span class="avatar">🎲</span><div><strong>F4Q9</strong><small>2/4 · ${game.title}</small></div><button class="btn secondary" data-nav="/rooms/F4Q9">Vào</button></div><div class="open-room"><span class="avatar">🕶️</span><div><strong>A7K2</strong><small>3/6 · ${game.title}</small></div><button class="btn secondary" data-nav="/rooms/A7K2">Vào</button></div></div></div></aside></section>`;
+    }
+    function renderCreate(id) {
+      const game = GAMES[id];
+      return `${shellTitle('Tạo phòng', `${game.title} · một phòng một game`)}<section class="form-layout"><form class="form-panel" id="create-form"><span class="tag">Dữ liệu minh họa</span><h3 style="margin-top:16px">Cấu hình phòng ${game.title}</h3><div class="field"><label for="player-name">Tên hiển thị</label><input class="input" id="player-name" value="Minh" maxlength="18"><small>Profile ID, seat ID và socket ID là ba khái niệm khác nhau ở production.</small></div><div class="field-row"><div class="field"><label for="variant">Variant / độ khó</label><select class="input" id="variant"><option>${game.variant}</option><option disabled>Variant khác · chưa có</option></select></div><div class="field"><label for="visibility">Quyền vào</label><select class="input" id="visibility"><option>Trong LAN · có mã</option><option>Chỉ link mời</option></select></div></div>${game.wallet ? '<div class="connection-strip">◈ Ví mô phỏng: 1.000 chip · mức giữ đề xuất: 100 chip</div>' : '<div class="connection-strip">✓ Không cần chip để tạo bàn Giải trí</div>'}<div class="button-row" style="margin-top:22px"><button class="btn primary" type="submit">Tạo phòng minh họa</button><button class="btn ghost" type="button" data-nav="/games/${id}">Hủy</button></div><p class="error-text" id="create-error"></p></form><aside class="panel"><span class="eyebrow">Sau khi tạo</span><h3>Phòng chờ sẽ có</h3><ul class="summary-list"><li>Mã 4 ký tự và link/QR để mời bạn.</li><li>Danh sách ghế, kết nối, sẵn sàng và quyền host.</li><li>Tóm tắt luật/variant trước khi bắt đầu.</li><li>Nút chơi tiếp giữ room; đổi game tạo room mới.</li></ul></aside></section>`;
+    }
+    function renderRoom(code) {
+      const id = gameFromPath(), game = GAMES[id];
+      const players = [{ avatar: '🕶️', name: 'Minh', role: 'Chủ phòng', ready: state.ready }, { avatar: '🎲', name: 'Lan', role: 'Bạn bè', ready: true }, { avatar: '💻', name: 'Khoa', role: 'Bạn bè', ready: false }, null];
+      if (state.roomStarted) return `${shellTitle('Bàn mẫu đang mở', `${game.title} · room ${code}`)}<section class="panel"><div class="connection-strip">✓ Demo state: server đã nhận cấu hình và chuyển sang match revision 1.</div><h2 style="margin-top:22px">${game.icon} ${game.title} sẵn sàng</h2><p class="lead">Đây là điểm nối prototype. Bàn thật sẽ render state riêng theo ghế từ module game; bài, vai và chip không được client tự khai.</p><div class="button-row"><button class="btn primary" data-action="demo-reconnect">Mô phỏng nối lại</button><button class="btn secondary" data-nav="/">Về trang chủ</button></div><div class="demo-note">Không có action chơi thật trong prototype. Mốc M1 mới triển khai adapter The Gang và route production.</div></section>`;
+      return `${shellTitle('Phòng chờ', `${game.title} · room ${code}`)}<section class="waiting-layout"><article class="waiting-main"><div class="waiting-title"><div><span class="eyebrow">Mã phòng LAN</span><h2 class="room-code-big">${esc(code)}</h2><p class="tiny">${game.title} · ${game.variant} · một phòng một game</p></div>${statusTag(game)}</div><div class="connection-strip">● Đang kết nối · Host có thể bắt đầu khi đủ người và đủ điều kiện.</div><h3 style="margin-top:28px">Ghế trong phòng <span class="tiny">${players.filter(Boolean).length}/4</span></h3><div class="seat-grid">${players.map((player, index) => player ? `<div class="seat"><span class="avatar">${player.avatar}</span><div><strong>${player.name}</strong><small>${player.role}</small></div><span class="ready">${player.ready ? '✓ Sẵn sàng' : 'Chờ'}</span></div>` : `<div class="seat is-empty"><span class="avatar">＋</span><div><strong>Ghế trống</strong><small>Gửi mã để mời bạn</small></div></div>`).join('')}</div><div class="button-row" style="margin-top:22px"><button class="btn secondary" data-action="demo-ready">${state.ready ? '↩ Hủy sẵn sàng' : '✓ Tôi sẵn sàng'}</button><button class="btn primary" data-action="demo-start">Bắt đầu bàn mẫu</button></div><div class="demo-note">Luồng thật sẽ kiểm tra lại ready, config, số người, ví/reservation và snapshot trước khi start. Đổi config sẽ hủy ready của cả phòng.</div></article><aside class="room-side"><div class="panel"><span class="eyebrow">Mời bạn bè</span><div class="qr-box" role="img" aria-label="QR minh họa"></div><p class="tiny" style="text-align:center">QR minh họa · link: /?room=${esc(code)}</p><div class="button-row"><button class="btn secondary" data-action="demo-copy">Sao chép mã</button><button class="btn secondary" data-action="demo-offline">Mô phỏng mất kết nối</button></div></div><div class="panel"><span class="eyebrow">Tóm tắt luật</span><h3>${game.title}</h3><p class="tiny">${game.description}</p><dl class="spec-list"><div><dt>Variant</dt><dd>${game.variant}</dd></div><div><dt>Chip</dt><dd>${game.wallet ? 'Giữ trước khi start' : 'Không dùng'}</dd></div><div><dt>Game đổi?</dt><dd>Phòng mới</dd></div></dl></div></aside></section>`;
+    }
+    function renderInfo(title, message) { return `${shellTitle(title, 'Prototype shell')}<section class="panel"><p class="lead">${message}</p><button class="btn secondary" data-nav="/">Về trang chủ</button></section>`; }
+    function render() {
+      const current = path(); themeFor(current);
+      let html;
+      if (current === '/') html = renderHome();
+      else if (current === '/play/casual') html = renderCategory('casual');
+      else if (current === '/play/thrill') html = renderCategory('thrill');
+      else if (current.startsWith('/games/')) html = renderGameDetail(gameFromPath());
+      else if (current.startsWith('/rooms/create/')) html = renderCreate(gameFromPath());
+      else if (current.startsWith('/rooms/')) html = renderRoom(current.split('/')[2] || 'A7K2');
+      else if (current === '/missions') html = renderInfo('Nhiệm vụ', 'Prototype minh họa: tiến độ chỉ tăng từ event server đã xác nhận và claim phải idempotent.');
+      else if (current === '/profile') html = renderInfo('Hồ sơ & ví', 'Prototype minh họa: available/reserved/in-game tách biệt; chip xếp hạng The Gang không nằm trong ví.');
+      else html = renderInfo('Không tìm thấy trang', 'Link này chưa có trong prototype.');
+      $('#app').innerHTML = html;
+      document.querySelectorAll('.nav-link').forEach((el) => el.classList.toggle('active', current === el.dataset.nav || (current.startsWith('/play/') && el.dataset.nav === current)));
+    }
+    document.addEventListener('click', (event) => {
+      const nav = event.target.closest('[data-nav]');
+      if (nav) { navigate(nav.dataset.nav); return; }
+      const action = event.target.closest('[data-action]')?.dataset.action;
+      if (!action) return;
+      if (action === 'demo-ready') { state.ready = !state.ready; render(); notify(state.ready ? 'Bạn đã sẵn sàng trong bản minh họa.' : 'Đã hủy sẵn sàng.'); }
+      if (action === 'demo-start') { state.roomStarted = true; render(); notify('Prototype chuyển sang match mẫu · không có server thật.'); }
+      if (action === 'demo-copy') notify('Đã mô phỏng sao chép mã phòng.');
+      if (action === 'demo-offline') notify('Mất kết nối minh họa: ghế được giữ, không hoàn chip tự động.');
+      if (action === 'demo-reconnect') notify('Đã mô phỏng resume bằng session token của ghế.');
+    });
+    document.addEventListener('submit', (event) => {
+      if (event.target.id === 'join-form') { event.preventDefault(); const code = event.target.room.value.trim().toUpperCase(); if (!/^[A-Z0-9]{4}$/.test(code)) { $('#join-error').textContent = 'Mã phòng cần đúng 4 ký tự trong bản minh họa.'; return; } navigate('/rooms/' + code); }
+      if (event.target.id === 'create-form') { event.preventDefault(); const name = $('#player-name').value.trim(); if (!name) { $('#create-error').textContent = 'Hãy nhập tên hiển thị.'; return; } state.ready = false; state.roomStarted = false; navigate('/rooms/A7K2'); }
+    });
+    window.addEventListener('hashchange', render);
+    render();
+  </script>
+</body>
+</html>

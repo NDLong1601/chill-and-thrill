@@ -48,7 +48,7 @@ Trong M0 chỉ làm khảo sát, đặc tả, schema phác thảo và prototype.
 - `npm test`: **32/32 pass**, chạy trước khi tạo tài liệu M0.
 - `npm run test:browser`: Playwright khởi chạy nhưng **fail** tại `scripts/browser-check.js:255`, timeout 8 giây khi chờ toast sau mô phỏng từ chối fullscreen. Đây là kết quả baseline của ứng dụng hiện tại; M0 không sửa vì không thuộc phạm vi nghiệp vụ/prototype.
 - Không có `AGENTS.md` trong dự án và chưa có `docs/milestones` trước M0.
-- Git root thực tế là `C:\Users\PC`, cao hơn project; mọi thay đổi M0 chỉ nằm trong `C:\Users\PC\Documents\the-gang`.
+- Khi khảo sát M0, Git root của bản nguồn nằm ở thư mục cha. Sau khi hợp nhất, thư mục làm việc và Git root hiện tại là `C:\Users\PC\Documents\chill-and-thrill`; chi tiết phiên bản đang chạy nằm trong `docs/migrations/M0-M3-merge.md`.
 
 ## 3. Mô hình người chơi, phòng và game
 

@@ -2,3 +2,5 @@ node_modules/
 data/
 test-results/
 *.log
+.migration-backups/
+.playwright-mcp/

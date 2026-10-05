@@ -4,7 +4,14 @@
    THE GANG · CLIENT CONTROLLER & INTERACTIVE ENGINE (V2.0)
    ═══════════════════════════════════════════════════════════════════════ */
 
-const socket = io();
+const PROFILE_TOKEN_KEY = 'chill-thrill:profile-token';
+const PROFILE_RECOVERY_KEY = 'chill-thrill:profile-recovery';
+const existingProfileToken = localStorage.getItem(PROFILE_TOKEN_KEY) || localStorage.getItem('gang.profileToken');
+const socket = io({ auth: existingProfileToken ? { profileToken: existingProfileToken } : {} });
+socket.on('profile_state', data => {
+  if (data.profileToken) { localStorage.setItem(PROFILE_TOKEN_KEY, data.profileToken); socket.auth = { profileToken: data.profileToken }; }
+  if (data.recoveryCode) localStorage.setItem(PROFILE_RECOVERY_KEY, data.recoveryCode);
+});
 
 // ── App State ──────────────────────────────────────────────────────────
 let myId = null;
@@ -228,6 +235,7 @@ $('btn-create').addEventListener('click', () => {
     playerName: name,
     modeId: selectedMode,
     avatar: selectedAvatar,
+    profileToken: (() => { try { return localStorage.getItem('gang.profileToken') || ''; } catch { return ''; } })(),
   });
 });
 
@@ -254,6 +262,7 @@ function doJoinRoom() {
     playerName: name,
     roomCode: code,
     avatar: selectedAvatar,
+    profileToken: (() => { try { return localStorage.getItem('gang.profileToken') || ''; } catch { return ''; } })(),
   });
 }
 
@@ -308,6 +317,8 @@ $('sel-change-mode').addEventListener('change', (e) => {
 
 function renderWaitingRoom(state) {
   $('disp-room-code').textContent = state.roomCode;
+  if ($('disp-room-name')) $('disp-room-name').textContent = state.roomName || 'The Gang · Phòng LAN';
+  if ($('disp-room-visibility')) $('disp-room-visibility').textContent = state.visibility === 'invite' ? '🔒 Chỉ qua lời mời · Không hiện trong danh sách LAN' : `🌐 Công khai trong LAN · ${state.players.length}/${state.maxPlayers || 6} ghế`;
   $('disp-member-count').textContent = state.players.length;
 
   const modeInfo = state.modeInfo;
@@ -383,6 +394,8 @@ socket.on('join_error', ({ message }) => showLobbyError(message));
 socket.on('game_error', ({ message }) => alert(message));
 
 socket.on('game_state', (state) => {
+  if (state.gameId && !['the-gang', 'uno'].includes(state.gameId)) return;
+  if (state.gameId === 'uno' && state.variant !== 'classic-local-v1') return;
   const prevPhase = lastState?.phase;
   lastState = state;
   myId = state.myId;
@@ -391,7 +404,19 @@ socket.on('game_state', (state) => {
   const me = state.players.find((p) => p.id === myId);
   isHost = me?.isHost || false;
 
+  if (state.gameId === 'uno') {
+    if (state.phase === 'WAITING') {
+      showScreen('screen-waiting');
+      if (typeof renderUnoWaiting === 'function') renderUnoWaiting(state);
+    } else {
+      showScreen('screen-uno');
+      if (typeof renderUnoState === 'function') renderUnoState(state);
+    }
+    return;
+  }
+
   if (state.phase === 'WAITING') {
+    $('strict-chat').closest('label')?.classList.remove('hidden');
     showScreen('screen-waiting');
     renderWaitingRoom(state);
     $('modal-result').classList.add('hidden');

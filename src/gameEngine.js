@@ -6,36 +6,87 @@ const path = require('node:path');
 const { deal, shuffleDeck } = require('./deck');
 const { getBestHand, checkShowdown, explainComparison } = require('./handEvaluator');
 const { CHALLENGES, SPECIALISTS, GAME_MODES } = require('./cardsData');
+const { getGame } = require('./platform/gameRegistry');
 
 const ROUNDS = ['PRE_FLOP', 'FLOP', 'TURN', 'RIVER'];
 const COLORS = ['white', 'yellow', 'orange', 'red'];
 const AVATARS = ['🕶️', '🥷', '💻', '🔓', '🎲', '🏎️'];
 const EMOTES = ['😂', '😱', '🤔', '😎', '🤫', '😡', '💸', '🤝', '🚨', '💀'];
 const QUICK_CHAT = ['Sẵn sàng!', 'Chờ một chút nhé.', 'Mọi người kiểm tra chip nhé.', 'Tiếp tục nào!', 'Cảm ơn cả đội!'];
+const STORAGE_VERSION = 2;
 const cleanName = value => String(value || '').trim().slice(0, 18) || 'Player';
 const clock = () => new Date().toLocaleTimeString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh', hour: '2-digit', minute: '2-digit', second: '2-digit' });
 const emptyChips = () => ({ white: null, yellow: null, orange: null, red: null });
+const hashSessionToken = value => crypto.createHash('sha256').update(String(value)).digest('hex');
+const sessionTokenMatches = (raw, storedHash) => typeof raw === 'string' && typeof storedHash === 'string' && hashSessionToken(raw) === storedHash;
+
+function hashRoomPassword(password) {
+  if (!password) return null;
+  const salt = crypto.randomBytes(16).toString('hex');
+  return `${salt}:${crypto.scryptSync(password, salt, 32).toString('hex')}`;
+}
+
+function verifyRoomPassword(password, encoded) {
+  if (!encoded || typeof password !== 'string') return !encoded;
+  const [salt, expected] = String(encoded).split(':');
+  if (!salt || !expected) return false;
+  const actual = crypto.scryptSync(password, salt, 32).toString('hex');
+  return actual.length === expected.length && crypto.timingSafeEqual(Buffer.from(actual), Buffer.from(expected));
+}
+
+function migrateRoom(room) {
+  const gameId = room.gameId || 'the-gang';
+  const game = getGame(gameId) || getGame('the-gang');
+  const legacyMode = GAME_MODES[room.mode] ? room.mode : GAME_MODES[room.difficulty] ? room.difficulty : 'ADVANCED';
+  room.gameId = game.gameId;
+  room.category = game.category;
+  room.rulesVersion = Number.isInteger(room.rulesVersion) ? room.rulesVersion : 1;
+  room.variant = room.variant || 'standard';
+  room.difficulty = legacyMode;
+  room.mode = legacyMode;
+  room.config = {
+    roomName: String(room.config?.roomName || 'The Gang · Phòng LAN').slice(0, 32),
+    maxPlayers: Number.isInteger(room.config?.maxPlayers) ? room.config.maxPlayers : game.maxPlayers,
+    visibility: room.config?.visibility === 'invite' ? 'invite' : 'public',
+    passwordHash: room.config?.passwordHash || null,
+  };
+  return room;
+}
 
 class GameManager {
   constructor(io, options = {}) {
     this.io = io;
     this.rooms = new Map();
     this.playerRoom = new Map();
+    this.stateAdapters = new Map();
     this.storageFile = options.storageFile || null;
+    this.onRoomChanged = options.onRoomChanged || null;
+    this.profileService = options.profileService || null;
+    this.codeTaken = typeof options.codeTaken === 'function' ? options.codeTaken : () => false;
+    this.profileForSocket = typeof options.profileForSocket === 'function' ? options.profileForSocket : () => null;
     this.graceMs = options.graceMs ?? 120000;
     this.load();
     this.cleanupTimer = setInterval(() => this.cleanup(), 30000);
     this.cleanupTimer.unref();
   }
 
+  registerStateAdapter(gameId, adapter) {
+    if (gameId && adapter) this.stateAdapters.set(gameId, adapter);
+  }
+
   load() {
     if (!this.storageFile || !fs.existsSync(this.storageFile)) return;
     try {
       const saved = JSON.parse(fs.readFileSync(this.storageFile, 'utf8'));
-      if (saved.version !== 1 || !Array.isArray(saved.rooms)) throw new Error('Định dạng lưu phòng không hợp lệ');
+      if (![1, STORAGE_VERSION].includes(saved.version) || !Array.isArray(saved.rooms)) throw new Error('Định dạng lưu phòng không hợp lệ');
       for (const room of saved.rooms) {
+        migrateRoom(room);
         if (Date.now() - room.updatedAt > 12 * 3600000) continue;
-        room.players.forEach(p => { p.connected = false; p.socketId = null; p.roundConfirmed = false; p.disconnectedAt = Date.now(); });
+        room.players.forEach(p => {
+          if (!p.tokenHash && p.token) p.tokenHash = hashSessionToken(p.token);
+          p.profileId ||= p.id;
+          p.connected = false; p.socketId = null; p.roundConfirmed = false; p.disconnectedAt = Date.now();
+        });
         this.rooms.set(room.code, room);
       }
     } catch (error) {
@@ -55,7 +106,11 @@ class GameManager {
     if (!this.storageFile || this.storageError) return;
     try {
       fs.mkdirSync(path.dirname(this.storageFile), { recursive: true });
-      fs.writeFileSync(this.storageFile + '.tmp', JSON.stringify({ version: 1, rooms: [...this.rooms.values()] }), { mode: 0o600 });
+      const safeRooms = JSON.parse(JSON.stringify([...this.rooms.values()], (key, value) => {
+        if (key === 'socketId' || (key === 'token' && this.profileService)) return undefined;
+        return value;
+      }));
+      fs.writeFileSync(this.storageFile + '.tmp', JSON.stringify({ version: STORAGE_VERSION, rooms: safeRooms }), { mode: 0o600 });
       fs.renameSync(this.storageFile + '.tmp', this.storageFile);
     } catch (error) { console.error('Không lưu được dữ liệu phòng:', error.message); }
   }
@@ -97,24 +152,50 @@ class GameManager {
   busy(room) { return ['PASS', 'VIEW', 'SELECT_CARD', 'DISCARD'].includes(room.specialistState?.stage) || !!room.specialistState?.proposal; }
   confirmReset(room) { room.players.forEach(p => { p.roundConfirmed = false; }); }
 
-  newPlayer(socket, name, avatar, isHost = false) {
-    return { id: crypto.randomUUID(), token: crypto.randomBytes(32).toString('hex'), socketId: socket.id,
+  newPlayer(socket, name, avatar, isHost = false, profile = null) {
+    const socketProfile = this.profileForSocket(socket);
+    if (!profile && socketProfile) profile = { playerId: socketProfile.id };
+    const id = profile?.playerId || crypto.randomUUID();
+    const token = crypto.randomBytes(32).toString('hex');
+    return { id, profileId: id, token, tokenHash: hashSessionToken(token), socketId: socket.id,
       name: cleanName(name), avatar: AVATARS.includes(avatar) ? avatar : AVATARS[0], isHost, connected: true,
       ready: false, roundConfirmed: false, chips: emptyChips(), privateCards: [], best5: [],
       handScore: 0, handName: '', handNameVi: '', rankLevel: 0, hasMuscleBonus: false, extraNote: '', privateInsights: [] };
   }
 
-  credentials(room, player) { return { roomCode: room.code, playerId: player.id, sessionToken: player.token }; }
+  credentials(room, player) {
+    return { roomCode: room.code, playerId: player.id, sessionToken: player.token, gameId: room.gameId || 'the-gang', category: room.category || 'casual' };
+  }
+
+  publicRoom(room) {
+    const config = room.config || {};
+    return {
+      roomCode: room.code, roomName: config.roomName || 'The Gang · Phòng LAN', gameId: room.gameId || 'the-gang',
+      category: room.category || 'casual', rulesVersion: room.rulesVersion || 1, variant: room.variant || 'standard',
+      difficulty: room.difficulty || room.mode || 'ADVANCED', visibility: config.visibility || 'public',
+      requiresPassword: !!config.passwordHash, phase: room.phase, players: room.players.length,
+      maxPlayers: config.maxPlayers || 6, updatedAt: room.updatedAt,
+    };
+  }
   bind(socket, room, player) { this.playerRoom.set(socket.id, room.code); socket.join(room.code); player.socketId = socket.id; player.connected = true; player.disconnectedAt = null; }
 
-  createRoom(socket, name, modeId = 'ADVANCED', avatar) {
+  createRoom(socket, name, modeId = 'ADVANCED', avatar, roomOptions = {}) {
     if (this.playerRoom.has(socket.id)) return { error: 'Hãy rời phòng hiện tại trước khi tạo phòng mới.' };
+    if (roomOptions.gameId && roomOptions.gameId !== 'the-gang') return this.createGenericRoom(socket, name, avatar, roomOptions);
     let code;
     const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-    do { code = Array.from({ length: 4 }, () => chars[crypto.randomInt(chars.length)]).join(''); } while (this.rooms.has(code));
+    do { code = Array.from({ length: 4 }, () => chars[crypto.randomInt(chars.length)]).join(''); } while (this.rooms.has(code) || this.codeTaken(code));
     const mode = GAME_MODES[modeId] || GAME_MODES.ADVANCED;
-    const player = this.newPlayer(socket, name, avatar, true);
-    const room = { code, phase: 'WAITING', matchId: crypto.randomUUID(), mode: mode.id,
+    const maxPlayers = Number.isInteger(roomOptions.maxPlayers) ? roomOptions.maxPlayers : 6;
+    if (maxPlayers < 2 || maxPlayers > 6) return { error: 'Số người của The Gang phải từ 2 đến 6.' };
+    const config = {
+      roomName: String(roomOptions.roomName || 'The Gang · Phòng LAN').trim().slice(0, 32) || 'The Gang · Phòng LAN',
+      maxPlayers, visibility: roomOptions.visibility === 'invite' ? 'invite' : 'public',
+      passwordHash: hashRoomPassword(typeof roomOptions.password === 'string' ? roomOptions.password.trim().slice(0, 64) : ''),
+    };
+    const player = this.newPlayer(socket, name, avatar, true, roomOptions.profile?.player);
+    const room = { code, phase: 'WAITING', matchId: crypto.randomUUID(), gameId: 'the-gang', category: 'casual', rulesVersion: 1,
+      variant: 'standard', difficulty: mode.id, mode: mode.id, config,
       maxVaults: mode.maxVaults, maxAlarms: mode.maxAlarms, score: { vaults: 0, alarms: 0 },
       heistNumber: 0, roundNumber: 0, gameOver: false, gameWon: false, paused: false, strictChat: true,
       players: [player], communityCards: [], allCommunityCards: [], remainingDeck: [], discardPile: [],
@@ -127,14 +208,43 @@ class GameManager {
     return this.credentials(room, player);
   }
 
-  joinRoom(socket, code, name, avatar) {
+  createGenericRoom(socket, name, avatar, roomOptions = {}) {
+    const game = getGame(roomOptions.gameId);
+    if (!game) return { error: 'Game không tồn tại.' };
+    const maxPlayers = Number.isInteger(roomOptions.maxPlayers) ? roomOptions.maxPlayers : game.maxPlayers;
+    if (maxPlayers < game.minPlayers || maxPlayers > game.maxPlayers) return { error: `Số người phải từ ${game.minPlayers} đến ${game.maxPlayers}.` };
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+    let code;
+    do { code = Array.from({ length: 4 }, () => chars[crypto.randomInt(chars.length)]).join(''); } while (this.rooms.has(code) || this.codeTaken(code));
+    const config = {
+      roomName: String(roomOptions.roomName || `${game.name} · Phòng LAN`).trim().slice(0, 32) || `${game.name} · Phòng LAN`,
+      maxPlayers, visibility: roomOptions.visibility === 'invite' ? 'invite' : 'public',
+      passwordHash: hashRoomPassword(typeof roomOptions.password === 'string' ? roomOptions.password.trim().slice(0, 64) : ''),
+    };
+    const player = this.newPlayer(socket, name, avatar, true, roomOptions.profile?.player);
+    const room = {
+      code, phase: 'WAITING', matchId: crypto.randomUUID(), gameId: game.gameId, category: game.category,
+      rulesVersion: game.rulesVersion, variant: roomOptions.variant || 'standard', difficulty: 'ADVANCED', mode: 'ADVANCED', config,
+      paused: false, strictChat: false, players: [player], log: [], chatLog: [], history: [], matches: [], updatedAt: Date.now(),
+      uno: null,
+    };
+    this.rooms.set(code, room); this.bind(socket, room, player);
+    this.addLog(room, `🏠 ${player.name} tạo phòng ${code}`, 'system');
+    this.saveSoon();
+    return this.credentials(room, player);
+  }
+
+  joinRoom(socket, code, name, avatar, options = {}) {
     if (this.playerRoom.has(socket.id)) return { error: 'Bạn đang ở trong một phòng khác.' };
     const room = this.rooms.get(code);
     if (!room) return { error: 'Không tìm thấy phòng.' };
     if (room.phase !== 'WAITING') return { error: 'Ván đang diễn ra. Người cũ hãy dùng nút khôi phục; người mới cần chờ phòng chờ.' };
-    if (room.players.length >= 6) return { error: 'Phòng đã đủ 6 người.' };
+    if (!verifyRoomPassword(options.password || '', room.config?.passwordHash)) return { error: 'Mật khẩu phòng không đúng.' };
+    const maxPlayers = room.config?.maxPlayers || 6;
+    if (room.players.length >= maxPlayers) return { error: `Phòng đã đủ ${maxPlayers} người.` };
+    if (options.profile?.player?.playerId && room.players.some(p => (p.profileId || p.id) === options.profile.player.playerId)) return { error: 'Hồ sơ này đã có ghế trong phòng.' };
     if (room.players.some(p => p.name.toLowerCase() === cleanName(name).toLowerCase())) return { error: 'Mật danh này đã được sử dụng.' };
-    const player = this.newPlayer(socket, name, avatar);
+    const player = this.newPlayer(socket, name, avatar, false, options.profile?.player);
     room.players.push(player); this.bind(socket, room, player);
     this.addLog(room, `👤 ${player.name} tham gia`, 'join'); this.ensureHost(room);
     return this.credentials(room, player);
@@ -142,11 +252,13 @@ class GameManager {
 
   resumeRoom(socket, code, token) {
     const room = this.rooms.get(code);
-    const player = room?.players.find(p => typeof token === 'string' && p.token === token);
+    const player = room?.players.find(p => typeof token === 'string' && (p.token === token || sessionTokenMatches(token, p.tokenHash || hashSessionToken(p.token || ''))));
     if (!player) return { error: 'Phiên chơi đã hết hạn hoặc phòng không còn tồn tại.' };
     const currentCode = this.playerRoom.get(socket.id);
     if (currentCode && currentCode !== code) return { error: 'Bạn đang ở phòng khác.' };
     if (player.connected && player.socketId !== socket.id) return { error: 'Ghế này đang mở trên một cửa sổ khác. Đóng cửa sổ đó trước khi khôi phục.' };
+    player.token = token;
+    player.tokenHash = hashSessionToken(token);
     this.bind(socket, room, player); this.ensureHost(room);
     this.addLog(room, `🔄 ${player.name} đã nối lại`, 'system');
     return this.credentials(room, player);
@@ -166,6 +278,7 @@ class GameManager {
     if (!player) return;
     player.connected = false; player.socketId = null; player.disconnectedAt = Date.now(); player.roundConfirmed = false;
     this.addLog(room, `📶 ${player.name} mất kết nối; giữ ghế để khôi phục`, 'system');
+    this.stateAdapters.get(room.gameId)?.onDisconnect?.(room, player.id);
     this.ensureHost(room); this.broadcast(code);
   }
 
@@ -214,7 +327,7 @@ class GameManager {
   changeMode(socket, code, modeId) {
     const ctx = this.access(socket, code, { host: true, phase: ['WAITING'] }); if (!ctx) return;
     const mode = GAME_MODES[modeId]; if (!mode) return this.error(socket, 'Chế độ không hợp lệ.');
-    Object.assign(ctx.room, { mode: mode.id, maxVaults: mode.maxVaults, maxAlarms: mode.maxAlarms });
+    Object.assign(ctx.room, { mode: mode.id, difficulty: mode.id, maxVaults: mode.maxVaults, maxAlarms: mode.maxAlarms });
     ctx.room.players.forEach(p => { p.ready = false; }); this.broadcast(code);
   }
 
@@ -236,10 +349,11 @@ class GameManager {
   startGame(socket, code, replay = false) {
     const ctx = this.access(socket, code, { host: true, phase: replay ? ['GAME_OVER'] : ['WAITING'], playing: true }); if (!ctx) return;
     const { room } = ctx;
-    if (room.players.length < 2 || room.players.length > 6) return this.error(socket, 'Cần từ 2 đến 6 người.');
+    const maxPlayers = room.config?.maxPlayers || 6;
+    if (room.players.length < 2 || room.players.length > maxPlayers) return this.error(socket, `Cần từ 2 đến ${maxPlayers} người.`);
     if (!replay && room.players.some(p => !p.ready)) return this.error(socket, 'Tất cả thành viên cần bấm Sẵn sàng.');
     const mode = GAME_MODES[room.mode];
-    this.rememberDecks(room);
+      this.rememberDecks(room);
     const progress = room.deckProgress?.[room.mode];
     Object.assign(room, { matchId: crypto.randomUUID(), gameOver: false, gameWon: false, score: { vaults: 0, alarms: 0 },
       heistNumber: 0, permanentChallenge: null, activeChallenges: [], activeSpecialist: null,
@@ -523,17 +637,27 @@ class GameManager {
   broadcast(code) {
     const room = this.rooms.get(code); if (!room) return;
     room.updatedAt = Date.now();
+    if (this.onRoomChanged) {
+      try { this.onRoomChanged(room); }
+      catch (error) { this.storageError = true; console.error('Không ghi được trạng thái SQLite:', error.message); }
+    }
     for (const p of room.players) { const socket = this.io.sockets.sockets.get(p.socketId); if (socket && p.connected) socket.emit('game_state', this.buildStateFor(room, p.id)); }
     this.saveSoon();
   }
 
   buildStateFor(room, playerId) {
+    const adapter = this.stateAdapters.get(room.gameId);
+    if (adapter?.buildStateFor) return adapter.buildStateFor(room, playerId);
     const final = ['RESULT', 'GAME_OVER'].includes(room.phase), sd = room.showdown;
     const revealed = final ? room.players.map(p => p.id) : room.phase === 'SHOWDOWN' ? sd.order.slice(0, sd.revealedCount) : [];
     const blind = this.has(room, 8) && !final;
     const me = room.players.find(p => p.id === playerId);
     const specialist = room.specialistState;
-    const state = { roomCode: room.code, myId: playerId, phase: room.phase, phaseKey: this.phaseKey(room), mode: room.mode, modeInfo: GAME_MODES[room.mode],
+    const state = { roomCode: room.code, myId: playerId, phase: room.phase, phaseKey: this.phaseKey(room),
+      gameId: room.gameId || 'the-gang', category: room.category || 'casual', rulesVersion: room.rulesVersion || 1,
+      variant: room.variant || 'standard', difficulty: room.difficulty || room.mode, roomName: room.config?.roomName || 'The Gang · Phòng LAN',
+      maxPlayers: room.config?.maxPlayers || 6, visibility: room.config?.visibility || 'public', requiresPassword: !!room.config?.passwordHash,
+      mode: room.mode, modeInfo: GAME_MODES[room.mode],
       heistNumber: room.heistNumber, roundNumber: room.roundNumber, currentRoundChipColor: room.currentRoundChipColor,
       score: room.score, maxVaults: room.maxVaults, maxAlarms: room.maxAlarms, gameOver: room.gameOver, gameWon: room.gameWon,
       paused: room.paused, disconnected: room.players.filter(p => !p.connected).map(p => p.name), strictChat: room.strictChat, quickChat: QUICK_CHAT,

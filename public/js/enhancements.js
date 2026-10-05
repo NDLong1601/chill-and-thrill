@@ -77,24 +77,30 @@ function connectionStatus(message) {
   document.body.classList.toggle('is-offline', !socket.connected);
 }
 for (const event of ['room_created', 'room_joined', 'room_resumed']) socket.on(event, data => {
+  if (data?.profileToken) { try { localStorage.setItem('gang.profileToken', data.profileToken); } catch {} }
   prefs.write('gang.session', data, true); prefs.write('gang.playerName', $('inp-name').value.trim());
   roomCode = data.roomCode; myId = data.playerId; connectionStatus('');
 });
 socket.on('connect', () => {
   const session = prefs.read('gang.session', null, true);
-  if (session) { connectionStatus('Đang khôi phục ghế, bài và chip…'); emitOriginal('resume_room', session); }
+  const invitation = new URLSearchParams(location.search).get('room')?.toUpperCase();
+  const roomPath = location.pathname.match(/^\/rooms\/([A-Z2-9]{4})$/i)?.[1]?.toUpperCase();
+  const requestedRoom = invitation || roomPath;
+  const isRootHome = location.pathname === '/' && !invitation;
+  const sessionMatchesRequestedRoom = !requestedRoom || session?.roomCode === requestedRoom;
+  if (session && !isRootHome && sessionMatchesRequestedRoom) { connectionStatus('Đang khôi phục ghế, bài và chip…'); emitOriginal('resume_room', session); }
   else connectionStatus('');
 });
 socket.on('disconnect', () => connectionStatus('📶 Mất kết nối — đang tự nối lại. Bài và chip được giữ trên máy chủ.'));
 socket.on('connect_error', () => connectionStatus('Không kết nối được máy chủ. Kiểm tra WiFi và máy đang chạy npm start.'));
 socket.on('resume_error', ({ message }) => {
   connectionStatus(message);
-  if (message.includes('hết hạn')) { prefs.remove('gang.session', true); lastState = null; roomCode = ''; myId = null; showScreen('screen-lobby'); toast(message); connectionStatus(''); }
+  if (message.includes('hết hạn')) { prefs.remove('gang.session', true); lastState = null; roomCode = ''; myId = null; showScreen('screen-home'); toast(message); connectionStatus(''); }
 });
 socket.on('room_left', () => {
   prefs.remove('gang.session', true); lastState = null; roomCode = ''; myId = null; isHost = false;
   document.querySelectorAll('.modal-backdrop').forEach(el => el.classList.add('hidden'));
-  showScreen('screen-lobby'); shareRoomCode = ''; connectionStatus('');
+  showScreen('screen-home'); shareRoomCode = ''; connectionStatus('');
 });
 socket.off('game_error'); socket.on('game_error', ({ message }) => toast(message));
 window.addEventListener('online', () => socket.connect());
@@ -226,6 +232,7 @@ appendChatMessage = function(message) {
 };
 socket.on('game_state', state => {
   connectionStatus('');
+  if (state.gameId !== 'the-gang') return;
   (state.chatLog || []).forEach(appendChatMessage);
   const cached = prefs.read('gang.history', { heists: [], matches: [] });
   for (const h of state.history) if (!cached.heists.some(x => x.matchId === h.matchId && x.heistNumber === h.heistNumber)) cached.heists.unshift({ ...h, roomCode: state.roomCode });

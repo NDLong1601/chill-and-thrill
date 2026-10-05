@@ -1,14 +1,28 @@
-# 🎭 The Gang — Poker Heist (Bản LAN Chơi Cùng WiFi)
+# Chill & Thrill — Cổng game LAN
 
-> Game hợp tác Poker Texas Hold'em phỏng theo boardgame **The Gang** nổi tiếng. Dành riêng cho gia đình và bạn bè chơi nội bộ qua mạng WiFi nhà, hoạt động ổn định, mượt mà, giao diện sang trọng và hoàn toàn miễn phí.
+Hai chế độ dùng chung một máy chủ LAN, hồ sơ và ví chip:
+
+- **Giải trí:** The Gang, UNO và BANG!.
+- **Kịch tính:** Tiến lên, Poker, Sâm lốc và Phỏm, dùng chip ảo trên server local.
+
+Mở địa chỉ máy chủ để chọn chế độ, game và tạo/vào phòng. UNO có hai biến thể: **112 lá, 2–4 người** từ M2 cũ và **108 lá, 2–6 người** từ bản đã có trong thư mục mới. Chọn biến thể tại trang chi tiết UNO.
+
+Thư mục làm việc: `C:\Users\PC\Documents\chill-and-thrill`. Runtime: **Node.js 24 trở lên**. Hướng dẫn và số liệu The Gang bên dưới áp dụng riêng cho game đó.
+
+Hồ sơ và chip dùng chung `data/chill-and-thrill.sqlite`; `GANG_DATABASE_FILE` hoặc alias `GANG_DB_FILE` chọn vị trí khác. Schema v2 tự nâng cấp từ v1; Poker ghi state bàn và ledger trong cùng transaction SQLite, còn JSON là bản xuất tương thích. Các game khác tiếp tục dùng JSON riêng. Khi sao lưu, dừng server và giữ cả SQLite lẫn JSON trong thư mục `data`. Xem [báo cáo hợp nhất M0–M3](docs/migrations/M0-M3-merge.md) và [bộ prompt đã cập nhật](docs/prompts/README.md).
+
+Kiểm tra toàn bộ bằng `npm test`; kiểm tra bàn The Gang bằng `npm run test:browser`; kiểm tra đi từ portal sang các bàn bằng `npm run test:portal-browser`.
+
+Các lỗi trong review M0–M6 đã được xử lý: bảo toàn chip khi phòng quá hạn/crash, rời bàn sau ván, phiên hồ sơ, QR có mật khẩu và trang `/missions`. Chạy `npm run test:review-browser` để kiểm tra các luồng UI này; chi tiết và kết quả nằm trong [báo cáo sửa lỗi](docs/reviews/M0-M6-fixes-20261005.md).
 
 ---
 
 ## 🚀 Hướng Dẫn Chạy Game
 
 ### 1. Cài đặt (chỉ cần chạy lần đầu)
-Mở terminal trong thư mục `the-gang` và chạy:
-```bash
+Mở PowerShell trong thư mục chương trình và chạy:
+```powershell
+cd C:\Users\PC\Documents\chill-and-thrill
 npm install
 ```
 
@@ -18,12 +32,9 @@ npm start
 ```
 Terminal sẽ hiển thị địa chỉ IP mạng nội bộ của bạn, ví dụ:
 ```
-╔════════════════════════════════════════════════════════╗
-║        🎭  THE GANG  -  HEIST POKER LAN SERVER         ║
-╠════════════════════════════════════════════════════════╣
-║  💻 Máy chủ Host : http://localhost:3000                 ║
-║  📱 Chơi WiFi LAN: http://192.168.1.51:3000            ║
-╚════════════════════════════════════════════════════════╝
+Chill & Thrill · LAN
+Máy chủ: http://localhost:3000
+WiFi LAN: http://192.168.1.51:3000
 ```
 
 ### 3. Kết nối chơi
@@ -32,7 +43,7 @@ Terminal sẽ hiển thị địa chỉ IP mạng nội bộ của bạn, ví d�
 
 ---
 
-## 🎲 Các Chế Độ Chơi (Bám Sát Luật Chơi Gốc)
+## 🎲 Độ khó riêng của The Gang
 
 | Chế độ | Mô tả | Độ khó |
 |---|---|---|
@@ -105,7 +116,7 @@ Nút 📊 hiển thị tỷ lệ thắng theo chế độ, chi tiết từng v�
 
 ## Kiểm tra chương trình
 
-Node.js 20 trở lên:
+Node.js 24 trở lên:
 
 ```powershell
 npm test

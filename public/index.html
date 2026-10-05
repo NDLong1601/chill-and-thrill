@@ -6,13 +6,15 @@
   <meta name="theme-color" content="#101a16">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="apple-mobile-web-app-title" content="The Gang">
+  <meta name="apple-mobile-web-app-title" content="Chill &amp; Thrill">
   <meta name="mobile-web-app-capable" content="yes">
-  <title>The Gang · Bàn chơi</title>
+  <title>Chill &amp; Thrill · Cổng game LAN</title>
   <link rel="stylesheet" href="/css/fonts.css">
   <link rel="stylesheet" href="/css/style.css">
   <link rel="stylesheet" href="/css/enhancements.css">
   <link rel="stylesheet" href="/css/table-layout.css">
+  <link rel="stylesheet" href="/css/portal.css">
+  <link rel="stylesheet" href="/css/uno-classic.css">
 </head>
 <body>
   <div id="rotate-device-overlay" class="rotate-device-overlay" role="alertdialog" aria-modal="true" aria-labelledby="rotate-device-title" aria-describedby="rotate-device-description" tabindex="-1" hidden>
@@ -29,10 +31,86 @@
   <div id="app-toast" class="app-toast hidden" role="status" aria-live="polite"></div>
 
   <!-- ══════════════════════════════════════════════════
-       MÀN HÌNH 1: SẢNH CHỜ CHÍNH (LOBBY)
+       MÀN HÌNH 1: TRANG CHỦ CỔNG GAME
   ══════════════════════════════════════════════════ -->
-  <div id="screen-lobby" class="screen active">
+  <div id="screen-home" class="screen active">
+    <main class="portal-home" aria-labelledby="portal-title">
+      <header class="portal-header">
+        <div>
+          <span class="portal-kicker">LAN · LOCAL · CÙNG PHÒNG</span>
+          <h1 id="portal-title">CỔNG GAME</h1>
+          <p id="portal-tagline">Chọn một bàn chơi, mời bạn bè cùng WiFi và bắt đầu ngay.</p>
+        </div>
+        <div class="portal-status-card">
+          <span class="portal-status-dot" aria-hidden="true"></span>
+          <span>Server nội bộ</span>
+          <small id="portal-wallet-note">Ví chip và nhiệm vụ nội bộ trên server local</small>
+        </div>
+      </header>
+
+      <section class="portal-identity portal-panel" aria-labelledby="portal-identity-title">
+        <div><h2 id="portal-identity-title">Tên hiển thị</h2><p>Dùng tên này khi vào phòng LAN. Không cần tài khoản cloud.</p></div>
+        <div class="portal-identity-controls">
+          <input id="portal-player-name" class="form-input" maxlength="18" autocomplete="nickname" placeholder="Nhập biệt danh của bạn">
+          <div id="portal-avatar-picker" class="portal-avatar-picker" aria-label="Chọn avatar">
+            <button type="button" class="portal-avatar active" data-avatar="🕶️">🕶️</button><button type="button" class="portal-avatar" data-avatar="🥷">🥷</button><button type="button" class="portal-avatar" data-avatar="💻">💻</button><button type="button" class="portal-avatar" data-avatar="🔓">🔓</button><button type="button" class="portal-avatar" data-avatar="🎲">🎲</button><button type="button" class="portal-avatar" data-avatar="🏎️">🏎️</button>
+          </div>
+        </div>
+      </section>
+
+      <section id="portal-account" class="portal-account portal-panel" aria-labelledby="portal-account-title">
+        <div class="portal-account-heading"><div><span class="portal-kicker">HỒ SƠ LOCAL</span><h2 id="portal-account-title">Hồ sơ & ví chip</h2><p id="portal-account-note">Dữ liệu chỉ nằm trên server LAN này. Tạo nhanh, không cần email.</p></div><button id="portal-account-refresh" class="btn btn-outline" type="button">↻ Làm mới</button></div>
+        <div class="portal-account-grid">
+          <div class="portal-stat"><span>Hồ sơ</span><strong id="portal-profile-label">Chưa tạo</strong><small id="portal-profile-scope">Server local</small></div>
+          <div class="portal-stat"><span>Có thể dùng</span><strong id="portal-wallet-available">—</strong><small>chip khả dụng</small></div>
+          <div class="portal-stat"><span>Đang giữ</span><strong id="portal-wallet-reserved">—</strong><small>chưa thanh toán</small></div>
+          <div class="portal-stat"><span>Trong bàn</span><strong id="portal-wallet-ingame">—</strong><small>stack / pot</small></div>
+        </div>
+        <div class="portal-account-columns">
+          <div><h3>🎯 Nhiệm vụ</h3><div id="portal-missions" class="portal-mission-list"><p class="portal-muted">Đang tải…</p></div></div>
+          <div><h3>🧾 Lịch sử chip</h3><div id="portal-wallet-history" class="portal-history-list"><p class="portal-muted">Chưa có giao dịch.</p></div></div>
+        </div>
+      </section>
+
+      <section class="portal-category" data-category-section="casual" aria-labelledby="casual-title">
+        <div class="portal-section-heading"><div><span class="portal-kicker">NHẸ NHÀNG · CÙNG ĐỘI</span><h2 id="casual-title">Giải trí</h2></div><span class="portal-section-note">Chơi cùng bạn bè</span></div>
+        <div id="casual-games" class="portal-game-grid"><div class="portal-loading">Đang tải danh mục từ server…</div></div>
+      </section>
+
+      <section class="portal-category" data-category-section="thrill" aria-labelledby="thrill-title">
+        <div class="portal-section-heading"><div><span class="portal-kicker">CĂNG THẲNG · CHIP ẢO</span><h2 id="thrill-title">Kịch tính</h2></div><span class="portal-section-note">Không có nạp/rút tiền</span></div>
+        <div id="thrill-games" class="portal-game-grid"><div class="portal-loading">Đang tải danh mục từ server…</div></div>
+      </section>
+
+      <section class="portal-panel portal-room-entry" aria-labelledby="portal-room-title">
+        <div><span class="portal-kicker">ĐÃ CÓ MÃ PHÒNG?</span><h2 id="portal-room-title">Vào thẳng bàn chơi</h2><p>Link mời cũ <code>/?room=ABCD</code> và QR vẫn dùng được.</p></div>
+        <div class="portal-room-form"><input id="portal-room-code" class="form-input code-input" maxlength="4" autocomplete="off" placeholder="MÃ PHÒNG"><input id="portal-room-password" class="form-input" type="password" maxlength="64" autocomplete="off" placeholder="Mật khẩu nếu có"><button id="portal-join" class="btn btn-primary">VÀO PHÒNG →</button></div>
+        <div id="portal-error" class="alert-box error hidden" role="alert"></div>
+      </section>
+
+      <section id="portal-continue" class="portal-panel portal-continue hidden" aria-live="polite"><div><span class="portal-kicker">PHIÊN ĐANG LƯU</span><h2>Tiếp tục phòng <span id="portal-continue-code">----</span></h2><p>Ghế, bài và lịch sử vẫn ở trên server. Xem trang chủ không rời ghế.</p></div><button id="portal-resume" class="btn btn-gold">TIẾP TỤC PHÒNG</button></section>
+      <div class="portal-home-footer"><button id="portal-tutorial" class="btn-text">🎓 Hướng dẫn The Gang</button><span>Chip chỉ có giá trị nội bộ trên server local; không có nạp/rút hoặc quy đổi.</span></div>
+    </main>
+  </div>
+
+  <div id="screen-game-detail" class="screen">
+    <main class="portal-detail" aria-labelledby="detail-title">
+      <button class="btn-text portal-back-home" data-portal-home>← Về trang chủ</button>
+      <section class="portal-detail-hero portal-panel"><span id="detail-category" class="portal-kicker">GIẢI TRÍ</span><h1 id="detail-title">The Gang</h1><p id="detail-description"></p><div id="detail-status" class="portal-detail-status"></div><div id="detail-meta" class="portal-detail-meta"></div></section>
+      <section class="portal-panel"><div class="portal-section-heading"><h2>Luật nhanh</h2><span id="detail-rules-version"></span></div><div id="detail-rules" class="portal-rules"></div></section>
+      <section id="detail-create-panel" class="portal-panel"><div class="portal-section-heading"><div><span class="portal-kicker">PHÒNG MỚI</span><h2>Tạo phòng</h2></div><span>Server kiểm tra cấu hình</span></div><div class="portal-form-grid"><label>Tên phòng<input id="detail-room-name" class="form-input" maxlength="32" value="The Gang · Phòng LAN"></label><label>Số người tối đa<select id="detail-max-players" class="form-select"><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option><option value="6" selected>6</option></select></label><label>Quyền truy cập<select id="detail-visibility" class="form-select"><option value="public">Công khai trong LAN</option><option value="invite">Chỉ qua lời mời</option></select></label><label>Mật khẩu tùy chọn<input id="detail-password" class="form-input" type="password" maxlength="64" autocomplete="new-password" placeholder="Để trống nếu không dùng"></label><label id="detail-difficulty-field">Độ khó The Gang<select id="detail-difficulty" class="form-select"><option value="BASIC">Cơ bản</option><option value="ADVANCED" selected>Nâng cao</option><option value="EXPERT">Chuyên nghiệp</option><option value="MASTER_THIEF">Siêu trộm</option></select></label></div><p id="detail-variant-note" class="portal-note">BASIC / ADVANCED / EXPERT / MASTER_THIEF là độ khó riêng của The Gang, không phải category hay game variant.</p><button id="detail-create" class="btn btn-gold">🏦 TẠO PHÒNG THE GANG</button><div id="detail-error" class="alert-box error hidden" role="alert"></div></section>
+      <section id="detail-coming-soon" class="portal-panel hidden"><h2>Game này chưa phát hành</h2><p>Danh mục đã có trên server nhưng engine chưa được bật. Không thể tạo phòng bằng UI hoặc API.</p></section>
+    </main>
+  </div>
+
+  <div id="screen-not-found" class="screen"><main class="portal-not-found portal-panel"><span class="portal-kicker">404 · KHÔNG TÌM THẤY</span><h1>Trang này không tồn tại</h1><p>Đường dẫn có thể đã cũ hoặc phòng đã hết hạn.</p><button class="btn btn-gold" data-portal-home>VỀ TRANG CHỦ</button></main></div>
+
+  <!-- ══════════════════════════════════════════════════
+       MÀN HÌNH 2: CẤU HÌNH THE GANG (LEGACY COMPATIBILITY)
+  ══════════════════════════════════════════════════ -->
+  <div id="screen-lobby" class="screen">
     <div class="lobby-container">
+      <button class="btn-text portal-back-home" data-portal-home>← Về cổng game</button>
       
       <!-- Top Branding -->
       <div class="lobby-brand">
@@ -123,6 +201,7 @@
 
       <!-- Quick Guide Footer Buttons -->
       <div class="lobby-footer-actions">
+        <button id="btn-back-home" class="btn-text">← Về cổng game</button>
         <button id="btn-tutorial" class="btn-text">🎓 Chơi thử có hướng dẫn</button>
         <button id="btn-history-lobby" class="btn-text">📊 Lịch sử cả đội</button>
         <button id="btn-open-rules" class="btn-text">📖 Xem Luật Chơi Chi Tiết</button>
@@ -150,6 +229,7 @@
         <div class="rc-info">
           <span class="rc-label">MÃ PHÒNG WIFI CỦA BẠN</span>
           <div class="rc-display" id="disp-room-code">----</div>
+          <small id="disp-room-name" class="room-name-display"></small>
         </div>
         <div class="rc-actions">
           <button id="btn-copy-code" class="btn btn-outline btn-sm">📋 Sao chép mã</button>
@@ -173,6 +253,7 @@
         <div class="wmi-left">
           <span class="wmi-title" id="disp-mode-title">Chế độ: Nâng cao</span>
           <span class="wmi-desc" id="disp-mode-desc">Thắng mở Thử thách, thua mở Chuyên gia.</span>
+          <small id="disp-room-visibility" class="room-visibility-display"></small>
         </div>
         <div class="wmi-right" id="host-mode-toggle-wrap">
           <select id="sel-change-mode" class="form-select hidden">
@@ -187,8 +268,8 @@
       <!-- Danh sách thành viên trong phòng -->
       <div class="waiting-members-section">
         <div class="members-header">
-          <span>THÀNH VIÊN ĐÃ THAM GIA (<span id="disp-member-count">1</span>/6)</span>
-          <span class="sub-hint">Cần từ 2 đến 6 người chơi</span>
+        <span>THÀNH VIÊN ĐÃ THAM GIA (<span id="disp-member-count">1</span>/<span id="disp-member-max">6</span>)</span>
+          <span id="disp-member-hint" class="sub-hint">Cần từ 2 đến 6 người chơi</span>
         </div>
         <div class="members-grid" id="wait-player-grid"></div>
       </div>
@@ -211,7 +292,32 @@
 
 
   <!-- ══════════════════════════════════════════════════
-       MÀN HÌNH 3: BÀN CHƠI POKER HEIST (TABLE GAME)
+       MÀN HÌNH 3: UNO CLASSIC LOCAL V1
+  ══════════════════════════════════════════════════ -->
+  <div id="screen-uno" class="screen">
+    <main class="uno-shell" aria-labelledby="uno-title">
+      <header class="uno-topbar">
+        <div><span class="uno-kicker">GIẢI TRÍ · CLASSIC LOCAL V1</span><h1 id="uno-title">UNO</h1><p id="uno-room-label"></p></div>
+        <div class="uno-top-actions"><span id="uno-turn-label" class="uno-turn-label"></span><button id="uno-rules-btn" class="btn btn-outline btn-sm">📖 Luật UNO</button><button id="uno-leave-btn" class="btn btn-outline btn-sm">Rời phòng</button></div>
+      </header>
+      <section id="uno-status" class="uno-status" role="status" aria-live="polite"></section>
+      <section class="uno-board-grid">
+        <aside class="uno-players panel-card"><div class="uno-panel-title">Người chơi</div><div id="uno-player-list"></div></aside>
+        <section class="uno-table panel-card" aria-label="Bàn UNO">
+          <div class="uno-table-meta"><span id="uno-direction"></span><span id="uno-pile-count"></span></div>
+          <div class="uno-piles"><button id="uno-draw-pile" class="uno-card uno-card-back" type="button" aria-label="Rút bài"><span>UNO</span></button><div class="uno-discard-wrap"><span class="uno-label">LÁ ĐANG CHƠI</span><div id="uno-discard"></div><span id="uno-color-label" class="uno-color-label"></span></div></div>
+          <div id="uno-reaction" class="uno-reaction"></div>
+          <div id="uno-result" class="uno-result hidden"></div>
+        </section>
+      </section>
+      <section class="uno-hand panel-card"><div class="uno-panel-title"><span>Bài của bạn</span><span id="uno-hand-count"></span></div><div id="uno-hand" class="uno-hand-row"></div><div id="uno-color-picker" class="uno-color-picker hidden" aria-label="Chọn màu sau lá Wild"></div><div id="uno-actions" class="uno-actions"></div></section>
+      <details id="uno-rules-panel" class="uno-rules panel-card"><summary>Luật nhanh và chính sách ván</summary><div><p>Match màu, số hoặc biểu tượng. Không có cộng dồn phạt, không nhảy lượt và không đánh nhiều lá cùng lúc.</p><p>+4 chỉ được đánh khi không có lá cùng màu; người kế tiếp có 15 giây để rút 4 hoặc phản đối. Phản đối đúng: người đánh +4 rút 4; phản đối sai: người phản đối rút 6.</p><p>Khi còn 1 lá, bấm UNO trong 5 giây; người khác có thể bắt lỗi trước khi họ bắt đầu lượt. Một ván kết thúc ngay sau khi một người hết bài; chưa dùng tính điểm 500 nhiều ván.</p></div></details>
+    </main>
+  </div>
+
+
+  <!-- ══════════════════════════════════════════════════
+       MÀN HÌNH 4: BÀN CHƠI POKER HEIST (TABLE GAME)
   ══════════════════════════════════════════════════ -->
   <div id="screen-game" class="screen">
 
@@ -885,5 +991,7 @@
   <script src="/js/app.js"></script>
   <script src="/js/enhancements.js"></script>
   <script src="/js/table-layout.js"></script>
+  <script src="/js/uno-classic.js"></script>
+  <script src="/js/portal.js"></script>
 </body>
 </html>

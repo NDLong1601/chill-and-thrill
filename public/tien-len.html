@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#321d2c">
+  <title>Tiến lên miền Nam · Chill &amp; Thrill</title>
+  <link rel="stylesheet" href="/css/fonts.css">
+  <link rel="stylesheet" href="/css/tien-len.css">
+</head>
+<body>
+  <div class="tl-shell">
+    <header class="tl-brand"><a href="/" aria-label="Về Chill and Thrill">CHILL &amp; THRILL</a><span><a href="/profile">Hồ sơ</a> · TIẾN LÊN</span></header>
+    <p id="notice" class="notice" role="status" aria-live="polite"></p>
+    <main>
+      <section id="home-view" class="view card">
+        <p class="eyebrow">KỊCH TÍNH · 2–4 NGƯỜI</p>
+        <h1>Tiến lên miền Nam</h1>
+        <p class="lead">Bản local v1 · 13 lá/người · cược cố định 100 chip. Người thắng nhận toàn bộ pot; không có phạt thối, cóng hoặc đền.</p>
+        <label>Tên của bạn<input id="name" maxlength="18" autocomplete="nickname" placeholder="Biệt danh"></label>
+        <label>Avatar<select id="avatar"><option>🕶️</option><option>🥷</option><option>💻</option><option>🔓</option><option>🎲</option><option>🏎️</option></select></label>
+        <button id="create" class="primary">Tạo bàn · giữ tối đa 100 chip</button>
+        <div class="or">hoặc vào bàn có sẵn</div>
+        <div class="join-row"><input id="room-code" maxlength="4" autocomplete="off" placeholder="MÃ BÀN"><button id="join">Vào bàn</button></div>
+        <p class="small"><a href="/docs/rules/tien-len.md" target="_blank">Đọc luật local v1 và bảng thanh toán</a></p>
+      </section>
+
+      <section id="room-view" class="view card" hidden>
+        <p class="eyebrow">BÀN TIẾN LÊN · CƯỢC CỐ ĐỊNH 100 CHIP</p><h1 id="room-title">----</h1>
+        <div class="share"><img id="qr" alt="Mã QR vào bàn Tiến lên"><div><p>Chia sẻ mã hoặc quét QR trong cùng Wi‑Fi.</p><button id="copy-code">Sao chép mã</button></div></div>
+        <div id="room-players" class="player-grid"></div><p id="room-status" class="small"></p>
+        <div class="button-row"><button id="ready" class="primary">Sẵn sàng</button><button id="start" hidden>Bắt đầu · giữ 100 chip/người</button><button id="leave">Rời bàn</button></div>
+      </section>
+
+      <section id="game-view" class="view" hidden>
+        <div class="game-header card"><div><p class="eyebrow">BÀN <span id="game-room"></span> · POT <span id="pot">0</span> CHIP</p><h1>Tiến lên miền Nam</h1></div><button id="game-leave">Rời sau ván</button></div>
+        <div id="phase-banner" class="phase-banner" role="status"></div>
+        <section id="players" class="player-grid game-players"></section>
+        <section class="table card"><div><p class="eyebrow">BÀI TRÊN BÀN</p><div id="table-cards" class="table-cards"></div><p id="table-combo" class="small"></p></div></section>
+        <section id="actions" class="actions card"></section>
+        <section class="hand card"><div class="hand-top"><h2>Bài của bạn <span id="hand-count"></span></h2><button id="sort" class="small-button">Sắp theo chất</button></div><p id="selection-info" class="small">Chọn lá để xem tổ hợp.</p><div id="hand" class="hand-cards"></div></section>
+        <section id="result" class="result card" hidden></section>
+        <section class="log card"><h2>Nhật ký bàn</h2><ul id="log"></ul></section>
+      </section>
+    </main>
+  </div>
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="/js/tien-len.js"></script>
+<script src="/js/game-session.js"></script>
+</body>
+</html>

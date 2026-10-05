@@ -5,7 +5,7 @@ Các prompt là yêu cầu cho những lượt triển khai sau; việc tạo b�
 
 ## Cách dùng
 
-1. Mở chat có workspace C:\Users\PC\Documents\the-gang.
+1. Mở chat có workspace C:\Users\PC\Documents\chill-and-thrill.
 2. Dùng lần lượt M0 → M1 → M2 → M3 → M4 → M5 → M6A → M6B → M6C → M7.
 3. Dán toàn bộ nội dung một file prompt vào chat. Hoặc nhắn: “Đọc và thực hiện toàn bộ prompt trong docs/prompts/<tên-file>. Chỉ triển khai mốc này.”
 4. Mỗi file đã có bối cảnh chung, yêu cầu riêng và cách bàn giao; không cần ghép thêm prompt nền.

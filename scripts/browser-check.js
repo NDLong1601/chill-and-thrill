@@ -68,7 +68,17 @@ async function main() {
     const host = await desktop.newPage(), friend = await mobile.newPage();
     host.setDefaultTimeout(8000); friend.setDefaultTimeout(8000);
     await host.goto(url); await host.waitForFunction(() => socket.connected);
-    await host.locator('#btn-tutorial').click();
+    assert.equal(await host.locator('#screen-home.active').isVisible(), true);
+    await host.locator('[data-game-card-action="the-gang"]').click();
+    await host.locator('#screen-game-detail.active').waitFor();
+    assert.match(await host.locator('#detail-status').innerText(), /Có thể chơi/);
+    await host.goBack(); await host.locator('#screen-home.active').waitFor();
+    await friend.goto(url); await friend.waitForFunction(() => socket.connected);
+    assert.equal(await friend.locator('#screen-home.active').isVisible(), true);
+    assert.equal(await friend.locator('#rotate-device-overlay').isVisible(), false);
+    const homeWidth = await friend.evaluate(() => ({ viewport: innerWidth, content: document.documentElement.scrollWidth }));
+    assert.ok(homeWidth.content <= homeWidth.viewport + 1, `Home overflows: ${JSON.stringify(homeWidth)}`);
+    await host.locator('#portal-tutorial').click();
     for (const value of [2, 2, 1, 1]) { await host.getByRole('button', { name: `Chọn ${value}⭐`, exact: true }).click(); await host.locator('#btn-tutorial-next').click(); }
     assert.match(await host.locator('#tutorial-content').innerText(), /cả đội cùng thắng/);
     await host.locator('[data-close="modal-tutorial"]').click();
@@ -78,8 +88,8 @@ async function main() {
     const code = await host.locator('#disp-room-code').innerText();
     await friend.goto(`${url}/?room=${code}`); await friend.waitForFunction(() => socket.connected);
     assert.equal(await friend.locator('#rotate-device-overlay').isVisible(), false);
-    assert.equal(await friend.locator('#inp-code').inputValue(), code);
-    await friend.locator('#inp-name').fill('Đồng đội'); await friend.locator('#btn-join').click(); await friend.locator('#screen-waiting.active').waitFor();
+    assert.equal(await friend.locator('#portal-room-code').inputValue(), code);
+    await friend.locator('#portal-player-name').fill('Đồng đội'); await friend.locator('#portal-join').click(); await friend.locator('#screen-waiting.active').waitFor();
     assert.equal(await friend.locator('#rotate-device-overlay').isVisible(), false);
     await host.locator('#btn-ready').click(); await friend.locator('#btn-ready').click();
     await host.waitForFunction(() => !document.querySelector('#btn-start-game').disabled); await host.locator('#btn-start-game').click();

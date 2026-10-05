@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#18223a">
+  <title>Hồ sơ &amp; nhiệm vụ · Chill &amp; Thrill</title>
+  <link rel="stylesheet" href="/css/fonts.css">
+  <link rel="stylesheet" href="/css/profile.css">
+</head>
+<body>
+  <main class="shell">
+    <header class="top"><a href="/">← Chill &amp; Thrill</a><a href="/uno">UNO</a></header>
+    <p id="notice" class="notice" role="status" aria-live="polite"></p>
+
+    <section id="guest" class="card narrow">
+      <p class="eyebrow">HỒ SƠ LOCAL</p>
+      <h1>Giữ chip trên thiết bị của bạn</h1>
+      <p>Tạo nhanh không cần email. Hồ sơ lưu trên máy chủ local; hãy ghi lại mã khôi phục trước khi đổi thiết bị.</p>
+      <label>Tên hiển thị<input id="new-name" maxlength="18" autocomplete="nickname" placeholder="Biệt danh"></label>
+      <label>Avatar<select id="new-avatar"><option>🕶️</option><option>🥷</option><option>💻</option><option>🔓</option><option>🎲</option><option>🏎️</option></select></label>
+      <button id="create" class="primary">Tạo hồ sơ + 1.000 chip</button>
+      <details class="recover"><summary>Đã có hồ sơ trên máy chủ này?</summary>
+        <label>Mã hồ sơ<input id="recover-id" autocomplete="off" placeholder="UUID hồ sơ"></label>
+        <label>Mã khôi phục<input id="recover-code" autocomplete="off" placeholder="XXXX-XXXX-XXXX-XXXX-XXXX"></label>
+        <button id="recover">Khôi phục trên thiết bị này</button>
+      </details>
+    </section>
+
+    <section id="profile" hidden>
+      <div class="card hero"><div><p class="eyebrow">HỒ SƠ LOCAL</p><h1><span id="avatar"></span> <span id="display-name"></span></h1><p class="sub">Dữ liệu chỉ tồn tại trên máy chủ LAN này.</p></div><a class="button-link" href="/">Chơi game</a></div>
+      <section class="balances"><article class="card balance"><span>Chip khả dụng</span><strong id="available">0</strong></article><article class="card balance"><span>Đang giữ</span><strong id="reserved">0</strong></article></section>
+      <section class="card"><div class="section-head"><div><p class="eyebrow">NHIỆM VỤ HÔM NAY</p><h2>Thưởng theo kết quả ván đã lưu</h2></div><span id="period" class="pill"></span></div><div id="missions" class="mission-list"></div><p class="fine">Thưởng chưa nhận hết hạn khi ngày mới bắt đầu theo giờ Việt Nam. Hướng dẫn chỉ mở khi có luồng được máy chủ xác minh.</p></section>
+      <section class="grid"><article class="card"><p class="eyebrow">ĐỔI TÊN / AVATAR</p><label>Tên hiển thị<input id="edit-name" maxlength="18"></label><label>Avatar<select id="edit-avatar"><option>🕶️</option><option>🥷</option><option>💻</option><option>🔓</option><option>🎲</option><option>🏎️</option></select></label><button id="save-profile">Lưu hồ sơ</button></article>
+      <article class="card recovery-card"><p class="eyebrow">KHÔI PHỤC THIẾT BỊ</p><p>Chỉ chia sẻ hai mã dưới đây với thiết bị của chính bạn.</p><label>Mã hồ sơ<output id="profile-id"></output></label><label>Mã khôi phục<output id="recovery-code">Chưa có trên thiết bị này</output></label><p class="fine">Token phiên không hiển thị và không được ghi vào lịch sử chip.</p></article></section>
+      <section class="card"><div class="section-head"><div><p class="eyebrow">LỊCH SỬ CHIP</p><h2>Giao dịch gần đây</h2></div></div><ul id="ledger" class="ledger"></ul></section>
+    </section>
+  </main>
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="/js/profile.js"></script>
+</body>
+</html>

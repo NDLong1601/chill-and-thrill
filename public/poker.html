@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Poker Texas Hold’em · Chill &amp; Thrill</title><link rel="stylesheet" href="/css/poker.css">
+</head>
+<body>
+  <div class="pk-shell">
+    <header class="pk-brand"><a href="/">CHILL <span>&amp;</span> THRILL</a><a href="/profile">Hồ sơ &amp; ví</a></header>
+    <p id="notice" class="notice" role="status"></p>
+    <main>
+      <section id="home-view" class="view card">
+        <p class="eyebrow">KỊCH TÍNH · TEXAS HOLD’EM NO-LIMIT</p><h1>Poker chip ảo, bàn 2–6 người</h1>
+        <p class="lead">Blind cố định 5/10. Buy-in 200–1.000 chip, top-up chỉ giữa các hand. Chip trong stack và ví được ghi riêng.</p>
+        <label>Tên của bạn<input id="name" maxlength="18" autocomplete="nickname" placeholder="Biệt danh"></label>
+        <label>Avatar<select id="avatar"><option>🕶️</option><option>🥷</option><option>💻</option><option>🔓</option><option>🎲</option><option>🏎️</option></select></label>
+        <button id="create" class="primary">Tạo bàn Poker</button><div class="or">hoặc vào bàn có sẵn</div>
+        <div class="join-row"><input id="room-code" maxlength="4" autocomplete="off" placeholder="MÃ BÀN"><button id="join">Vào bàn</button></div>
+        <p class="small"><a href="/docs/rules/poker.md" target="_blank">Đọc luật Hold’em local v1, all-in và side pot</a></p>
+      </section>
+
+      <section id="room-view" class="view card" hidden>
+        <p class="eyebrow">BÀN POKER · BLIND 5/10 · BUY-IN 200–1.000</p><h1 id="room-title">----</h1>
+        <div class="share"><img id="qr" alt="Mã QR vào bàn Poker"><div><p>Quét QR trong cùng Wi‑Fi hoặc gửi mã bàn.</p><button id="copy-code">Sao chép mã</button></div></div>
+        <div class="wallet-strip"><span>Ví dùng được <b id="wallet-available">0</b></span><span>Đang ở stack <b id="room-stack">0</b></span><span>Đang giữ <b id="wallet-reserved">0</b></span></div>
+        <section class="buyin"><label>Buy-in / top-up (bội số 10)<input id="buyin-amount" type="number" inputmode="numeric" min="200" max="1000" step="10" value="200"></label><button id="buyin" class="primary">Đưa chip vào stack</button></section>
+        <div id="room-players" class="player-grid"></div><p id="room-status" class="small"></p>
+        <div class="button-row"><button id="ready" class="primary">Sẵn sàng nhận hand</button><button id="start" hidden>Bắt đầu hand</button><button id="sit-out">Ngồi ngoài</button><button id="leave">Cash-out &amp; rời bàn</button></div>
+      </section>
+
+      <section id="game-view" class="view" hidden>
+        <div class="game-header card"><div><p class="eyebrow">BÀN <span id="game-room"></span> · <span id="street">PREFLOP</span></p><h1>POT <span id="pot">0</span> CHIP</h1></div><button id="game-leave">Cash-out sau hand</button></div>
+        <div id="phase-banner" class="phase-banner" role="status"></div>
+        <section id="players" class="player-grid game-players"></section>
+        <section class="table card"><p class="eyebrow">BÀI CHUNG</p><div id="community" class="cards"></div><p id="side-pots" class="small"></p></section>
+        <section class="my-cards card"><div class="hand-top"><h2>Bài riêng · stack <span id="game-stack">0</span></h2><span id="my-round" class="small"></span></div><div id="hole-cards" class="cards"></div></section>
+        <section id="actions" class="actions card"></section>
+        <section id="result" class="result card" hidden></section>
+        <section class="log card"><h2>Nhật ký bàn</h2><ul id="log"></ul></section>
+      </section>
+    </main>
+  </div>
+  <script src="/socket.io/socket.io.js"></script><script src="/js/poker.js"></script>
+<script src="/js/game-session.js"></script>
+</body>
+</html>

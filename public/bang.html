@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#3a2318">
+  <title>BANG! · Chill &amp; Thrill</title>
+  <link rel="stylesheet" href="/css/bang.css">
+</head>
+<body>
+  <div class="bang-shell">
+    <header class="bang-brand"><a href="/">← CHILL &amp; THRILL</a><span>BANG! · BỘ CƠ BẢN</span></header>
+    <p id="notice" class="notice" role="status"></p>
+    <main>
+      <section id="home-view" class="view card">
+        <p class="eyebrow">GIẢI TRÍ · 4–7 NGƯỜI</p><h1>BANG!</h1>
+        <p class="lead">Bắn súng miền Viễn Tây với vai ẩn, khoảng cách, trang bị và phản ứng ngoài lượt. Không dùng chip đặt cược.</p>
+        <label>Tên của bạn<input id="name" maxlength="18" autocomplete="nickname" placeholder="Biệt danh"></label>
+        <label>Avatar<select id="avatar"><option>🤠</option><option>🕶️</option><option>🥷</option><option>💻</option><option>🎲</option><option>🏜️</option></select></label>
+        <button id="create" class="primary">Tạo bàn BANG!</button>
+        <div class="or">hoặc vào bàn có sẵn</div>
+        <div class="join-row"><input id="room-code" maxlength="4" autocomplete="off" placeholder="MÃ BÀN"><button id="join">Vào bàn</button></div>
+        <p class="small"><a href="/docs/rules/bang.md" target="_blank">Đọc luật BANG! bộ cơ bản và nguồn đối chiếu</a></p>
+      </section>
+
+      <section id="room-view" class="view card" hidden>
+        <p class="eyebrow">BÀN BANG! · 4–7 NGƯỜI</p><h1 id="room-title">----</h1>
+        <div class="share"><img id="qr" alt="Mã QR vào bàn BANG!"><div><p>Chia sẻ mã hoặc quét QR trong cùng Wi‑Fi.</p><button id="copy-code">Sao chép mã</button></div></div>
+        <div id="room-players" class="player-grid"></div><p id="room-status" class="small"></p>
+        <div class="button-row"><button id="ready" class="primary">Sẵn sàng</button><button id="start" hidden>Bắt đầu</button><button id="leave">Rời bàn</button></div>
+      </section>
+
+      <section id="game-view" class="view" hidden>
+        <div class="game-header card"><div><p class="eyebrow">BÀN <span id="game-room"></span> · <span id="deck-count">0</span> LÁ NỌC · <span id="discard-count">0</span> BỎ</p><h1>BANG! <span id="my-role"></span></h1></div><button id="game-leave">Rời sau ván</button></div>
+        <section id="phase-banner" class="phase-banner" role="status"></section>
+        <section id="players" class="player-grid game-players"></section>
+        <section class="table card"><div><p class="eyebrow">CHỒNG BỎ</p><div id="discard-top" class="discard-card">Chưa có lá</div></div><div><p class="eyebrow">MỤC TIÊU</p><p id="target-info" class="small">Chọn lá rồi chọn người khi cần.</p><div id="equipment-target" class="equipment-target"></div></div></section>
+        <section id="pending" class="card pending" hidden></section>
+        <section id="actions" class="actions card"></section>
+        <section class="hand card"><div class="hand-top"><h2>Bài của bạn <span id="hand-count"></span></h2><button id="clear-selection" class="small-button">Bỏ chọn</button></div><p id="selection-info" class="small">Chọn lá để chơi, phản ứng hoặc bỏ cuối lượt.</p><div id="hand" class="hand-cards"></div></section>
+        <section id="result" class="result card" hidden></section>
+        <section class="log card"><h2>Nhật ký bàn</h2><ul id="log"></ul></section>
+      </section>
+    </main>
+  </div>
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="/js/bang.js"></script>
+<script src="/js/game-session.js"></script>
+</body>
+</html>

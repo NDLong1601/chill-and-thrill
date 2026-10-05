@@ -1,6 +1,6 @@
 # M5 — Poker Texas Hold’em No-Limit
 
-Bạn đang làm việc trong dự án C:\Users\PC\Documents\the-gang.
+Bạn đang làm việc trong dự án C:\Users\PC\Documents\chill-and-thrill.
 
 Bối cảnh:
 - Mở rộng The Gang hiện có thành cổng game LAN: Giải trí gồm The Gang, UNO, BANG!; Kịch tính gồm Poker, Tiến lên, Sâm lốc, Phỏm.

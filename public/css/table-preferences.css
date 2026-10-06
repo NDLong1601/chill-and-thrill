@@ -1,0 +1,325 @@
+.table-preferences-scope {
+  --table-pref-card-width: 4.25rem;
+  --table-pref-card-height: 6rem;
+  color: inherit;
+  font-size: 1rem;
+}
+
+.table-preferences-scope[data-card-size="compact"] {
+  --table-pref-card-width: 3.45rem;
+  --table-pref-card-height: 4.9rem;
+}
+
+.table-preferences-scope[data-card-size="large"] {
+  --table-pref-card-width: 5rem;
+  --table-pref-card-height: 7rem;
+}
+
+.table-preferences-scope:not(#screen-game)[data-card-size="compact"] :is(.hand, .my-cards) :is(.tl-card, .table-card, .playing-card) {
+  width: 55px !important;
+  min-width: 55px !important;
+  height: 78px !important;
+}
+
+.table-preferences-scope:not(#screen-game)[data-card-size="standard"] :is(.hand, .my-cards) :is(.tl-card, .table-card, .playing-card) {
+  width: 64px !important;
+  min-width: 64px !important;
+  height: 88px !important;
+}
+
+.table-preferences-scope:not(#screen-game)[data-card-size="large"] :is(.hand, .my-cards) :is(.tl-card, .table-card, .playing-card) {
+  width: 78px !important;
+  min-width: 78px !important;
+  height: 108px !important;
+}
+
+@media (orientation: landscape) and (max-height: 560px) {
+  .thrill-table-view.table-preferences-scope:not(#screen-game)[data-card-size="compact"] :is(.hand, .my-cards) :is(.tl-card, .playing-card) { width: 38px !important; min-width: 38px !important; height: 54px !important; }
+  .thrill-table-view.table-preferences-scope:not(#screen-game)[data-card-size="standard"] :is(.hand, .my-cards) :is(.tl-card, .playing-card) { width: 44px !important; min-width: 44px !important; height: 64px !important; }
+  .thrill-table-view.table-preferences-scope:not(#screen-game)[data-card-size="large"] :is(.hand, .my-cards) :is(.tl-card, .playing-card) { width: 50px !important; min-width: 50px !important; height: 72px !important; }
+}
+
+@media (orientation: landscape) and (max-height: 365px) {
+  .thrill-table-view.table-preferences-scope:not(#screen-game)[data-card-size="compact"] :is(.hand, .my-cards) :is(.tl-card, .playing-card) { width: 36px !important; min-width: 36px !important; height: 50px !important; }
+  .thrill-table-view.table-preferences-scope:not(#screen-game)[data-card-size="standard"] :is(.hand, .my-cards) :is(.tl-card, .playing-card) { width: 42px !important; min-width: 42px !important; height: 58px !important; }
+  .thrill-table-view.table-preferences-scope:not(#screen-game)[data-card-size="large"] :is(.hand, .my-cards) :is(.tl-card, .playing-card) { width: 48px !important; min-width: 48px !important; height: 66px !important; }
+}
+
+.table-preferences-scope[data-card-size="compact"] .bang-card { width: 98px !important; min-height: 82px !important; }
+.table-preferences-scope[data-card-size="standard"] .bang-card { width: 116px !important; min-height: 96px !important; }
+.table-preferences-scope[data-card-size="large"] .bang-card { width: 136px !important; min-height: 112px !important; }
+
+.table-preferences-scope[data-text-size="large"] { font-size: 1.125rem; }
+.table-preferences-scope[data-text-size="largest"] { font-size: 1.25rem; }
+
+.table-preferences-scope .game-header { flex-wrap: wrap; }
+.table-preferences-scope .game-header .table-tools { max-width: 100%; flex-wrap: wrap; }
+
+.table-preferences-scope[data-text-size="large"] :is(.phase-banner, .game-status-banner, .uno-status, .uno-turn-label, .player-name, .player-meta, .uno-player-main, .small, .notice, .actions button, .uno-actions button, .bang-card) { font-size: 1.125rem !important; }
+.table-preferences-scope[data-text-size="largest"] :is(.phase-banner, .game-status-banner, .uno-status, .uno-turn-label, .player-name, .player-meta, .uno-player-main, .small, .notice, .actions button, .uno-actions button, .bang-card) { font-size: 1.25rem !important; }
+
+.table-preferences-panel,
+.table-preferences-panel * {
+  box-sizing: border-box;
+}
+
+.table-preferences-panel {
+  display: grid;
+  gap: 0.55rem;
+  margin: 0 0 0.75rem;
+  color: inherit;
+  font: inherit;
+}
+
+#screen-game .table-tools-menu {
+  position: fixed;
+  top: calc(var(--toolbar-height) + 2px);
+  right: max(8px, var(--safe-right));
+  width: min(272px, calc(100vw - 16px - var(--safe-left) - var(--safe-right)));
+  max-height: calc(var(--game-height) - var(--toolbar-height) - 8px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+#screen-game .table-tools-menu > .table-preferences-panel {
+  grid-column: 1 / -1;
+  margin: 0;
+}
+#screen-game .table-tools-menu > .context-help {
+  grid-column: 1 / -1;
+  min-width: 0;
+  margin: 0;
+}
+#screen-game .table-preferences-controls {
+  grid-template-columns: minmax(0, 1fr);
+  min-width: 0;
+}
+
+/* Only the player's hand changes size. Public board cards and opponent
+   thumbnails retain the dimensions reserved by the arena layout. */
+#screen-game { --gang-hand-width: 50px; --gang-hand-height: 72px; --gang-hand-scale: 1; }
+#screen-game.table-compact { --gang-hand-width: 38px; --gang-hand-height: 48px; }
+#screen-game.table-short { --gang-hand-width: 32px; --gang-hand-height: 42px; }
+@media (max-width: 700px) {
+  #screen-game.table-compact { --gang-hand-width: 34px; }
+}
+#screen-game[data-card-size="compact"] { --gang-hand-scale: .85; }
+#screen-game[data-card-size="large"] { --gang-hand-scale: 1.15; }
+#screen-game.table-preferences-scope .my-cards-row .playing-card {
+  width: calc(var(--gang-hand-width) * var(--gang-hand-scale));
+  min-width: 0;
+  height: calc(var(--gang-hand-height) * var(--gang-hand-scale));
+}
+
+.native-table-preferences-menu > summary {
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  padding: 8px 10px;
+  border: 1px solid #486064;
+  border-radius: 10px;
+  background: #192e35;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.native-table-preferences-menu > .table-preferences-panel {
+  position: fixed;
+  z-index: 100;
+  top: 64px;
+  right: max(8px, env(safe-area-inset-right));
+  width: min(360px, calc(100vw - 16px));
+  max-height: calc(100dvh - 76px - env(safe-area-inset-bottom));
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 12px;
+  border: 1px solid #486064;
+  border-radius: 12px;
+  background: #101f26;
+  box-shadow: 0 10px 30px #0009;
+}
+.thrill-table-view.table-preferences-scope > .table-stage > .table {
+  overflow-wrap: anywhere;
+  overflow-y: auto;
+  max-height: calc(100% - 24px);
+}
+
+.table-preferences-turn {
+  margin: 0;
+  padding: 0.75rem 1rem;
+  border: 2px solid currentColor;
+  border-radius: 0.75rem;
+  font-size: 1.125em;
+  font-weight: 750;
+  line-height: 1.35;
+}
+
+.table-preferences-turn[data-turn="mine"] {
+  border-width: 3px;
+  box-shadow: 0 0 0 2px currentColor;
+}
+
+.table-preferences-details {
+  width: fit-content;
+  max-width: 100%;
+}
+
+.table-preferences-details > summary {
+  min-height: 44px;
+  padding: 0.65rem 0.85rem;
+  border: 1px solid currentColor;
+  border-radius: 0.6rem;
+  cursor: pointer;
+  font-weight: 650;
+  line-height: 1.25;
+}
+
+.table-preferences-details > summary:focus-visible,
+.table-preferences-panel :focus-visible {
+  outline: 3px solid Highlight;
+  outline-offset: 3px;
+}
+
+.table-preferences-controls {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(10rem, 1fr));
+  gap: 0.75rem;
+  min-width: min(100%, 20rem);
+  max-width: min(100%, 32rem);
+  padding: 0.8rem;
+  border: 1px solid currentColor;
+  border-radius: 0.75rem;
+  margin-top: 0.4rem;
+}
+
+.table-preferences-field {
+  display: grid;
+  align-content: start;
+  gap: 0.3rem;
+  font-size: 0.95em;
+  font-weight: 600;
+}
+
+.table-preferences-select {
+  width: 100%;
+  min-height: 44px;
+  padding: 0.5rem 0.65rem;
+  border: 1px solid currentColor;
+  border-radius: 0.5rem;
+  background: Canvas;
+  color: CanvasText;
+  font: inherit;
+}
+
+.table-preferences-check {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  min-height: 44px;
+  font-size: 0.95em;
+  font-weight: 600;
+  line-height: 1.35;
+  cursor: pointer;
+}
+
+.table-preferences-check input {
+  width: 1.25rem;
+  height: 1.25rem;
+  flex: 0 0 auto;
+  accent-color: Highlight;
+}
+
+.table-preferences-storage-status {
+  grid-column: 1 / -1;
+  min-height: 1.25em;
+  font-size: 0.85em;
+  line-height: 1.4;
+}
+
+.table-preferences-scope .hand-cards,
+.table-preferences-scope .uno-hand-row,
+.table-preferences-scope .table-preferences-hand {
+  max-width: 100%;
+  overflow-x: auto;
+  overscroll-behavior-inline: contain;
+  padding: 0.4rem 0.25rem 0.7rem;
+  scroll-snap-type: inline proximity;
+  -webkit-overflow-scrolling: touch;
+}
+
+.table-preferences-scope .hand-cards > *,
+.table-preferences-scope .uno-hand-row > *,
+.table-preferences-scope .table-preferences-hand > * {
+  flex: 0 0 auto;
+  scroll-snap-align: start;
+}
+
+.table-preferences-scope .uno-card {
+  width: var(--table-pref-card-width) !important;
+  min-width: var(--table-pref-card-width) !important;
+  height: var(--table-pref-card-height) !important;
+  min-height: var(--table-pref-card-height) !important;
+  font-size: 1.15rem !important;
+  touch-action: manipulation;
+}
+
+.table-preferences-scope :is(.tl-card, .table-card, .playing-card, .bang-card) { touch-action: manipulation; flex-basis: auto !important; }
+
+.table-preferences-scope[data-text-size="large"] .uno-card { font-size: 1.35rem !important; }
+.table-preferences-scope[data-text-size="largest"] .uno-card { font-size: 1.55rem !important; }
+.table-preferences-scope[data-text-size="large"] .uno-card-value { font-size: 1.8rem !important; }
+.table-preferences-scope[data-text-size="largest"] .uno-card-value { font-size: 2rem !important; }
+.table-preferences-scope[data-text-size="large"] .uno-card small { font-size: 0.8rem !important; }
+.table-preferences-scope[data-text-size="largest"] .uno-card small { font-size: 0.9rem !important; }
+.table-preferences-scope[data-text-size="large"] :is(.tl-card, .table-card, .playing-card) { font-size: 1.35rem !important; }
+.table-preferences-scope[data-text-size="largest"] :is(.tl-card, .table-card, .playing-card) { font-size: 1.55rem !important; }
+
+.table-preferences-scope .uno-player.is-current,
+.table-preferences-scope .player.current,
+.table-preferences-scope [data-player-current="true"],
+.table-preferences-scope .table-preferences-current-player {
+  outline: 3px solid currentColor;
+  outline-offset: 2px;
+}
+
+.table-preferences-scope[data-reduce-motion="true"] *,
+.table-preferences-scope[data-reduce-motion="true"] *::before,
+.table-preferences-scope[data-reduce-motion="true"] *::after {
+  animation-duration: 0.01ms !important;
+  animation-iteration-count: 1 !important;
+  scroll-behavior: auto !important;
+  transition-duration: 0.01ms !important;
+}
+
+@media (max-width: 420px) {
+  .table-preferences-controls { grid-template-columns: minmax(0, 1fr); }
+  .table-preferences-details { width: 100%; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .table-preferences-scope:not([data-reduce-motion="false"]) *,
+  .table-preferences-scope:not([data-reduce-motion="false"]) *::before,
+  .table-preferences-scope:not([data-reduce-motion="false"]) *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+@media (forced-colors: active) {
+  .table-preferences-turn,
+  .table-preferences-details > summary,
+  .table-preferences-controls,
+  .table-preferences-select {
+    border: 1px solid CanvasText;
+    color: CanvasText;
+    background: Canvas;
+    forced-color-adjust: auto;
+  }
+
+  .table-preferences-turn[data-turn="mine"] { border: 3px solid Highlight; }
+  .table-preferences-scope .uno-player.is-current,
+  .table-preferences-scope .player.current,
+  .table-preferences-scope [data-player-current="true"],
+  .table-preferences-scope .table-preferences-current-player { outline-color: Highlight; }
+}

@@ -34,7 +34,8 @@ summary { cursor: pointer; padding: 6px 0; font-weight: 600; }
 .chat-mode-setting { display: flex; gap: 8px; text-align: left; align-items: flex-start; }
 .chat-mode-setting input { margin-top: 3px; accent-color: var(--gold); }
 .room-tools { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
-.ready-status { margin-left: auto; color: var(--gold-light); font-size: 12px; }
+.member-chip-card { display: grid; grid-template-columns: auto minmax(0, 1fr); }
+.ready-status { grid-column: 1 / -1; color: var(--gold-light); font-size: 12px; }
 .is-ready { background: #17623e; }
 .lobby-footer-actions { flex-wrap: wrap; gap: 12px; }
 .game-feature-panel { padding: 14px; background: #15211b; border: 1px solid #376849; border-radius: 12px; margin: 10px 16px; flex-shrink: 0; }

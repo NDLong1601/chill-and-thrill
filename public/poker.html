@@ -1,12 +1,24 @@
 <!doctype html>
 <html lang="vi">
 <head>
-  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>Poker Texas Hold’em · Chill &amp; Thrill</title><link rel="stylesheet" href="/css/poker.css">
+  <link rel="icon" type="image/webp" href="/assets/game/logo.webp">
+  <link rel="apple-touch-icon" href="/assets/game/logo.webp">
+  <link rel="stylesheet" href="/css/game-art.css">
+  <link rel="stylesheet" href="/css/table-shell.css">
+  <link rel="stylesheet" href="/css/table-preferences.css">
+  <link rel="stylesheet" href="/css/preflight.css">
+  <link rel="stylesheet" href="/css/storage-status.css">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Chill &amp; Thrill">
+  <link rel="stylesheet" href="/css/shared-ui.css">
+  <link rel="stylesheet" href="/css/context-help.css">
 </head>
 <body>
   <div class="pk-shell">
-    <header class="pk-brand"><a href="/">CHILL <span>&amp;</span> THRILL</a><a href="/profile">Hồ sơ &amp; ví</a></header>
+    <header class="pk-brand"><a href="/" class="asset-brand-link" aria-label="Về Chill &amp; Thrill"><img class="brand-art" src="/assets/game/logo.webp" alt="Chill &amp; Thrill" width="640" height="383"></a><a href="/profile">Hồ sơ &amp; ví</a></header>
     <p id="notice" class="notice" role="status"></p>
     <main>
       <section id="home-view" class="view card">
@@ -15,21 +27,21 @@
         <label>Tên của bạn<input id="name" maxlength="18" autocomplete="nickname" placeholder="Biệt danh"></label>
         <label>Avatar<select id="avatar"><option>🕶️</option><option>🥷</option><option>💻</option><option>🔓</option><option>🎲</option><option>🏎️</option></select></label>
         <button id="create" class="primary">Tạo bàn Poker</button><div class="or">hoặc vào bàn có sẵn</div>
-        <div class="join-row"><input id="room-code" maxlength="4" autocomplete="off" placeholder="MÃ BÀN"><button id="join">Vào bàn</button></div>
-        <p class="small"><a href="/docs/rules/poker.md" target="_blank">Đọc luật Hold’em local v1, all-in và side pot</a></p>
+        <div class="join-row"><input id="room-code" inputmode="text" autocapitalize="characters" aria-label="Mã phòng 4 ký tự" maxlength="4" autocomplete="off" placeholder="MÃ BÀN"><button id="join">Vào bàn</button></div>
+        <p class="small"><a href="/docs/rules/poker.md" target="_blank">Đọc luật Hold’em , all-in và side pot</a></p>
       </section>
 
       <section id="room-view" class="view card" hidden>
         <p class="eyebrow">BÀN POKER · BLIND 5/10 · BUY-IN 200–1.000</p><h1 id="room-title">----</h1>
         <div class="share"><img id="qr" alt="Mã QR vào bàn Poker"><div><p>Quét QR trong cùng Wi‑Fi hoặc gửi mã bàn.</p><button id="copy-code">Sao chép mã</button></div></div>
-        <div class="wallet-strip"><span>Ví dùng được <b id="wallet-available">0</b></span><span>Đang ở stack <b id="room-stack">0</b></span><span>Đang giữ <b id="wallet-reserved">0</b></span></div>
-        <section class="buyin"><label>Buy-in / top-up (bội số 10)<input id="buyin-amount" type="number" inputmode="numeric" min="200" max="1000" step="10" value="200"></label><button id="buyin" class="primary">Đưa chip vào stack</button></section>
+        <div class="wallet-strip"><span><img class="resource-icon" src="/assets/game/chip.webp" alt="" width="24" height="24"> Ví dùng được <b id="wallet-available">0</b></span><span><img class="resource-icon" src="/assets/game/chip.webp" alt="" width="24" height="24"> Đang ở stack <b id="room-stack">0</b></span><span><img class="resource-icon" src="/assets/game/chip.webp" alt="" width="24" height="24"> Đang giữ <b id="wallet-reserved">0</b></span></div>
+        <section class="buyin"><label>Buy-in / top-up (bội số 10)<input id="buyin-amount" type="text" inputmode="numeric" min="200" max="1000" step="10" value="200"></label><button id="buyin" class="primary">Đưa chip vào stack</button></section>
         <div id="room-players" class="player-grid"></div><p id="room-status" class="small"></p>
         <div class="button-row"><button id="ready" class="primary">Sẵn sàng nhận hand</button><button id="start" hidden>Bắt đầu hand</button><button id="sit-out">Ngồi ngoài</button><button id="leave">Cash-out &amp; rời bàn</button></div>
       </section>
 
       <section id="game-view" class="view" hidden>
-        <div class="game-header card"><div><p class="eyebrow">BÀN <span id="game-room"></span> · <span id="street">PREFLOP</span></p><h1>POT <span id="pot">0</span> CHIP</h1></div><button id="game-leave">Cash-out sau hand</button></div>
+        <div class="game-header card"><div><p class="eyebrow">BÀN <span id="game-room"></span> · <span id="street">PREFLOP</span></p><h1><img class="resource-icon" src="/assets/game/chip.webp" alt="" width="24" height="24"> POT <span id="pot">0</span> CHIP</h1></div><button id="game-leave">Cash-out sau hand</button></div>
         <div id="phase-banner" class="phase-banner" role="status"></div>
         <section id="players" class="player-grid game-players"></section>
         <section class="table card"><p class="eyebrow">BÀI CHUNG</p><div id="community" class="cards"></div><p id="side-pots" class="small"></p></section>
@@ -40,7 +52,23 @@
       </section>
     </main>
   </div>
-  <script src="/socket.io/socket.io.js"></script><script src="/js/poker.js"></script>
-<script src="/js/game-session.js"></script>
+  <script src="/js/game-art.js"></script>
+  <script src="/js/game-values.js"></script>
+  <script src="/js/mobile-ui.js"></script>
+  <script src="/socket.io/socket.io.js"></script><script src="/js/table-preferences.js"></script><script src="/js/poker.js"></script>
+<script src="/js/room-access.js"></script>
+  <script src="/js/room-create.js"></script>
+  <script src="/js/game-session.js"></script>
+  <script src="/js/room-shell.js"></script>
+  <script src="/js/table-shell.js"></script>
+  <script src="/js/table-flow.js"></script>
+  <script src="/js/turn-clock.js"></script>
+  <script src="/js/tutorial-content.js"></script>
+  <script src="/js/context-help.js"></script>
+  <script src="/js/context-help-ui.js"></script>
+  <script src="/js/storage-status.js"></script>
+  <script src="/js/storage-warning.js"></script>
+  <script src="/js/preflight.js"></script>
+  <script src="/js/preflight-mount.js"></script>
 </body>
 </html>

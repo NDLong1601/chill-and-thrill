@@ -18,6 +18,10 @@ test('Phỏm uses the shared room/QR gateway and only sends each player their ow
   await new Promise(resolve => game.server.listen(0, '127.0.0.1', resolve)); const url = `http://127.0.0.1:${game.server.address().port}`, host = await connect(url), guest = await connect(url); clients.push(host, guest);
   const created = await request(host, 'create_room', { playerName: 'Chủ Phỏm', avatar: '🕶️', gameId: 'phom' }); await waitState(host, state => state.gameId === 'phom' && state.phase === 'WAITING'); await request(guest, 'join_room', { roomCode: created.roomCode, playerName: 'Bạn Phỏm', avatar: '🎲' }); await waitState(host, state => state.players.length === 2);
   host.emit('set_ready', { roomCode: created.roomCode, ready: true }); guest.emit('set_ready', { roomCode: created.roomCode, ready: true }); await waitState(host, state => state.players.every(player => player.ready)); host.emit('start_game', { roomCode: created.roomCode }); const started = await waitState(host, state => state.gameId === 'phom' && state.phase === 'DISCARD'), other = await waitState(guest, state => state.gameId === 'phom' && state.phase === 'DISCARD');
-  assert.equal(started.myHand.length, 10); assert.equal(other.myHand.length, 9); assert.equal(started.maxLoss, 60); assert.equal(JSON.stringify(started).includes(other.myHand[0].id), false);
+  assert.equal(started.myHand.length, 10); assert.equal(other.myHand.length, 9); assert.equal(started.maxLoss, 60);
+  const privateProjection = JSON.stringify(started);
+  for (const card of other.myHand) assert.equal(privateProjection.includes(JSON.stringify(card.id)), false,
+    'Opponent card ids must not appear as complete values in the private projection');
+  assert.ok(started.players.every(player => !('hand' in player) && !('myHand' in player) && !('revealedHand' in player)));
   const page = await fetch(`${url}/phom`); assert.equal(page.status, 200); assert.match(await page.text(), /Phỏm/); const rules = await fetch(`${url}/docs/rules/phom.md`); assert.equal(rules.status, 200); const qr = await fetch(`${url}/api/rooms/${created.roomCode}/qr`); assert.equal(qr.status, 200); assert.match(await qr.text(), /<svg/);
 });

@@ -42,7 +42,7 @@ async function main() {
     await owner.waitForFunction(() => document.querySelector('#display-name').textContent === 'Owner reconnected');
     assert.equal(await owner.locator('#available').innerText(), '1.000');
 
-    const mobileContext = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
+    const mobileContext = await browser.newContext({ viewport: { width: 844, height: 390 }, isMobile: true, hasTouch: true });
     const mobile = await pageFor(mobileContext);
     await mobile.goto(`${url}/profile`); await mobile.waitForFunction(() => socket.connected);
     await mobile.locator('details.recover summary').click();
@@ -62,7 +62,7 @@ async function main() {
     await owner.goto(url); await owner.locator('#portal-player-name').fill('QR owner');
     await owner.locator('[data-game-card-action="uno"]').click();
     await owner.locator('#detail-uno-variant').selectOption('classic-108-v1');
-    await owner.locator('#detail-password').fill('secret-qr'); await owner.locator('#detail-create').click();
+    await owner.locator('#detail-password').fill('123456'); await owner.locator('#detail-create').click();
     await owner.waitForURL(/\/uno\?room=/); await owner.locator('#room-view').waitFor({ state: 'visible' });
     const code = new URL(owner.url()).searchParams.get('room');
     const response = await fetch(`${url}/api/rooms/${code}/qr?origin=${encodeURIComponent(url)}`);
@@ -70,10 +70,12 @@ async function main() {
     assert.equal(qrPayload, `${url}/?room=${code}`);
     await guest.goto(qrPayload); await guest.locator('#screen-home.active').waitFor();
     await guest.locator('#portal-player-name').fill('QR guest');
-    await guest.locator('#portal-room-password').fill('wrong-password'); await guest.locator('#portal-join').click();
-    await guest.waitForFunction(() => /mật khẩu/i.test(document.querySelector('#portal-error').textContent));
+    await guest.locator('#portal-join').click();
+    await guest.locator('.room-password-dialog[open]').waitFor();
+    await guest.locator('#portal-room-password').fill('654321'); await guest.locator('.password-submit').click();
+    await guest.waitForFunction(() => /mật khẩu/i.test(document.querySelector('#room-password-error').textContent));
     assert.equal(game.gm.uno.rooms.get(code).players.length, 1);
-    await guest.locator('#portal-room-password').fill('secret-qr'); await guest.locator('#portal-join').click();
+    await guest.locator('#portal-room-password').fill('123456'); await guest.locator('.password-submit').click();
     await guest.waitForURL(/\/uno\?room=/); await guest.locator('#room-view').waitFor({ state: 'visible' });
     assert.equal(game.gm.uno.rooms.get(code).players.length, 2);
     await guest.reload(); await guest.locator('#room-view').waitFor({ state: 'visible' });

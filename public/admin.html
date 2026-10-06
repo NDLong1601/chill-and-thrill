@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#102b2a">
+  <title>Quản trị máy LAN · Chill &amp; Thrill</title>
+  <link rel="stylesheet" href="/css/admin.css">
+  <script defer src="/js/admin.js"></script>
+</head>
+<body>
+  <main class="admin-shell">
+    <header class="topbar">
+      <a class="brand" href="/" aria-label="Về trang chủ">Chill <span>&amp;</span> Thrill</a>
+      <span class="local-badge">Bảng điều khiển máy chủ</span>
+    </header>
+
+    <section class="intro">
+      <p class="eyebrow">MÁY CHỦ LAN</p>
+      <h1>Vận hành bàn chơi</h1>
+      <p class="intro-copy">Xem địa chỉ vào bàn, phòng đang hoạt động và tình trạng lưu trữ trên máy này.</p>
+    </section>
+
+    <section class="auth-card panel" aria-labelledby="auth-title">
+      <div>
+        <h2 id="auth-title">Xác thực chủ máy</h2>
+        <p class="muted">Mở bảng điều khiển trên chính máy đang chạy server. Secret được đọc từ cấu hình server và chỉ giữ trong trang này khi bạn đang mở.</p>
+      </div>
+      <form id="auth-form" class="auth-form">
+        <label for="admin-secret">Secret quản trị</label>
+        <div class="auth-row">
+          <input id="admin-secret" type="password" autocomplete="off" spellcheck="false" required minlength="32" placeholder="Nhập secret đã cấu hình trên server">
+          <button class="button primary" type="submit">Mở bảng</button>
+        </div>
+        <div class="auth-actions">
+          <button id="sign-out" class="text-button" type="button" hidden>Xóa secret khỏi trang</button>
+          <span id="auth-message" class="status-message" role="status" aria-live="polite">Bảng quản trị chỉ phản hồi qua kết nối nội bộ của máy chủ.</span>
+        </div>
+      </form>
+    </section>
+
+    <div id="dashboard" class="dashboard" hidden>
+      <section class="summary-grid" aria-label="Tình trạng hiện tại">
+        <article class="metric panel"><span>Kết nối</span><strong id="connection-count">—</strong><small>socket đang mở</small></article>
+        <article class="metric panel"><span>Phòng</span><strong id="room-count">—</strong><small id="connected-player-count">— người đang kết nối</small></article>
+        <article class="metric panel"><span>Lưu trữ</span><strong id="storage-state">Chưa rõ</strong><small id="storage-detail">Đang chờ dữ liệu</small></article>
+        <article class="metric panel"><span>Tạo bàn</span><strong id="maintenance-state">Đang mở</strong><small id="maintenance-detail">Bàn hiện có tiếp tục hoạt động</small></article>
+      </section>
+
+      <section class="panel section-card">
+        <div class="section-heading">
+          <div><p class="eyebrow">ĐIỀU KHIỂN</p><h2>Nhận bàn mới</h2></div>
+          <button id="maintenance-toggle" class="button" type="button">Bật bảo trì</button>
+        </div>
+        <p class="muted">Chế độ bảo trì chỉ từ chối tạo bàn mới. Người chơi vẫn có thể vào lại hoặc tiếp tục, thoát và kết thúc phòng hiện có.</p>
+        <p id="action-message" class="status-message" role="status" aria-live="polite"></p>
+      </section>
+
+      <section class="panel section-card">
+        <div class="section-heading"><div><p class="eyebrow">THAM GIA QUA LAN</p><h2>Địa chỉ và mã QR</h2></div><button id="refresh" class="button secondary" type="button">Làm mới</button></div>
+        <div id="addresses" class="address-grid"><p class="empty-state">Chưa có địa chỉ mạng để hiển thị.</p></div>
+      </section>
+
+      <section class="panel section-card">
+        <div class="section-heading"><div><p class="eyebrow">ĐANG CHẠY</p><h2>Phòng chơi</h2></div><span id="room-total" class="count-pill">0 phòng</span></div>
+        <div class="table-scroll">
+          <table>
+            <thead><tr><th>Mã phòng</th><th>Game / biến thể</th><th>Giai đoạn</th><th>Người</th><th>Quyền vào</th></tr></thead>
+            <tbody id="room-list"><tr><td colspan="5" class="empty-state">Chưa có phòng.</td></tr></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="panel section-card">
+        <div class="section-heading"><div><p class="eyebrow">DỮ LIỆU</p><h2>Tình trạng lưu trữ</h2></div><span id="storage-badge" class="state-pill">Chưa rõ</span></div>
+        <div id="storage-summary" class="storage-summary"></div>
+        <ul id="storage-issues" class="issue-list"></ul>
+        <p class="notice">Bảng này không có thao tác cấp, sửa hoặc xóa tiền. Backup/restore C04 chỉ chạy sau khi đã dừng server; hãy làm theo runbook ở thư mục <code>docs/runbooks/backup-restore-c04.md</code>.</p>
+      </section>
+
+      <section class="panel section-card receipt-section">
+        <div class="section-heading"><div><p class="eyebrow">NHẬT KÝ BẢNG ĐIỀU KHIỂN</p><h2>Biên nhận thao tác</h2></div></div>
+        <div id="receipts" class="receipt-list"><p class="empty-state">Chưa có thao tác trong phiên này.</p></div>
+        <p class="muted small">Các biên nhận bảo trì được giữ trong bộ nhớ đến khi server khởi động lại. Không có công cụ can thiệp ví trong bảng này.</p>
+      </section>
+    </div>
+
+    <footer><a href="/">Về trang chủ</a><span>Điều khiển nội bộ · không gửi dữ liệu tới dịch vụ bên ngoài</span></footer>
+  </main>
+</body>
+</html>

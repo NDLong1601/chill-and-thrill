@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#172220">
+  <title>Giải đấu nhóm · Chill &amp; Thrill</title>
+  <link rel="stylesheet" href="/css/group-tournament.css">
+  <script defer src="/js/group-tournament.js"></script>
+</head>
+<body>
+  <main class="tournament-shell">
+    <header class="page-heading">
+      <a class="back-link" href="/">← Chill &amp; Thrill</a>
+      <p class="eyebrow">CHƠI CÙNG NHÓM</p>
+      <h1>Giải đấu &amp; bảng xếp hạng</h1>
+      <p id="group-name" class="muted">Đang tải nhóm…</p>
+    </header>
+
+    <div id="notice" class="notice" role="status" aria-live="polite" hidden></div>
+
+    <section id="create-panel" class="panel" hidden>
+      <div class="panel-heading"><div><p class="eyebrow">MỞ GIẢI MỚI</p><h2>Thiết lập giải</h2></div></div>
+      <form id="create-form" class="create-form">
+        <label>Tên giải<input name="name" maxlength="48" placeholder="Ví dụ: Tối thứ sáu" required></label>
+        <label>Game<select name="gameId" id="game-select" required></select></label>
+        <label>Biến thể<select name="variant" id="variant-select" required></select></label>
+        <label>Số vòng<input name="rounds" type="number" min="1" max="20" value="3" required></label>
+        <button class="button button-primary" type="submit">Tạo giải</button>
+      </form>
+    </section>
+
+    <section class="layout-grid">
+      <section class="panel tournament-panel">
+        <div class="panel-heading"><div><p class="eyebrow">NHÓM CỦA BẠN</p><h2>Giải đấu</h2></div><button id="refresh-button" class="button button-quiet" type="button">Làm mới</button></div>
+        <div id="tournament-list" class="tournament-list"><p class="muted">Đang tải…</p></div>
+        <div id="tournament-actions" class="actions" hidden></div>
+      </section>
+
+      <section class="panel standings-panel">
+        <div class="panel-heading"><div><p class="eyebrow">ĐIỂM NHÓM</p><h2 id="selected-name">Bảng xếp hạng</h2></div></div>
+        <p id="progress-line" class="muted">Chọn một giải để xem bảng điểm và lịch sử vòng.</p>
+        <div class="table-wrap"><table><thead><tr><th>Hạng</th><th>Người chơi</th><th>Điểm</th><th>Thắng</th><th>Hòa</th><th>Thua</th></tr></thead><tbody id="standings-body"></tbody></table></div>
+        <div class="history-heading"><h3>Lịch sử vòng</h3><span id="history-count" class="muted"></span></div>
+        <div id="round-history" class="round-history"><p class="muted">Chưa có vòng nào.</p></div>
+      </section>
+    </section>
+
+    <section class="panel rules-panel">
+      <div class="panel-heading"><div><p class="eyebrow">LUẬT TÍNH ĐIỂM</p><h2>Rõ ràng từ đầu</h2></div></div>
+      <p id="tie-break" class="rule-note"></p>
+      <p id="no-score-rule" class="rule-note"></p>
+      <div id="points-rules" class="rules-grid"></div>
+      <details><summary>Game và số người phù hợp</summary><div id="game-rules" class="game-rules"></div></details>
+    </section>
+
+    <footer><span>Điểm giải đấu không phải tiền hoặc chip và không thay đổi ví.</span><span>Thành viên bị khóa khi chủ nhóm bắt đầu giải.</span></footer>
+  </main>
+</body>
+</html>

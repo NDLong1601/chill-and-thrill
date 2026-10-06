@@ -36,7 +36,7 @@ Theo nguồn Mattel, +4 chỉ hợp lệ nếu người đánh không có lá tr
 - Phản đối đúng: người đánh +4 rút 4; mục tiêu đi lượt bình thường.
 - Phản đối sai: mục tiêu rút 6 và mất lượt.
 
-Chỉ người phải rút +4 được phản đối. Cửa sổ phản đối 12 giây tính theo clock server; nếu có người mất kết nối, clock dừng và khi tất cả nối lại nó chạy phần thời gian còn lại. Sau restart, phòng được khôi phục ở trạng thái tạm dừng, không tự thưởng thêm lượt phản đối.
+Chỉ người phải rút +4 được phản đối. Cửa sổ phản đối 12 giây tính theo deadline tuyệt đối của server và tiếp tục chạy khi người chơi mất kết nối hoặc server restart. Hết hạn, server chấp nhận +4, rút 4 và chuyển lượt theo luật.
 
 ## UNO
 
@@ -46,8 +46,12 @@ Trước khi đánh lá áp chót, người chơi bấm **Gọi UNO**. Nếu cò
 
 - Mọi action có `actionId` và `expectedRevision`; action cũ bị từ chối, gửi lại cùng ID không áp dụng lần hai.
 - Server kiểm tra lượt, lá trên tay, màu Wild, tính hợp lệ +4, phạt và điều kiện thắng. Client không gửi bộ bài, kết quả hay hình phạt tự khai.
-- Mất kết nối giữa ván tạm dừng toàn bàn và giữ ghế trong 120 giây. Khôi phục bằng token phòng sẽ thấy lại đúng bài, lượt, màu, phạt và cửa sổ phản ứng còn lại.
+- Mất kết nối giữa ván tạm dừng toàn bàn và giữ ghế trong 120 giây. Hạn được lưu và không gia hạn khi restart lặp lại. Hết grace, server chọn đỏ nếu cần chọn màu, rút phạt đang chờ, hoặc rút rồi bỏ lượt sau khi rút; không tự đánh lá kín thay người chơi. Khôi phục bằng token phòng sẽ thấy lại đúng bài, lượt, màu, phạt và deadline phản ứng.
 - Phòng UNO, state và lưu khôi phục nằm tách riêng The Gang; mã phòng được kiểm tra chéo để không đụng nhau.
+
+## Rời phòng
+
+Người chơi có thể chọn **Rời sau ván** kể cả khi bàn tạm dừng; ghế và phiên chỉ được gỡ khi nhận `room_left` sau kết quả. Sự kiện `leave_after_hand` là intent riêng. Hành vi `leave_room` hiện có vẫn hủy ván ngay, xóa các cửa sổ phản ứng và đưa những người còn lại về phòng chờ; ván hủy không tính kết quả hoặc nhiệm vụ. Mất kết nối tự nó không hủy ván.
 
 ## Không thuộc v1
 

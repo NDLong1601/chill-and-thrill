@@ -6,6 +6,7 @@ const prefs = {
   write(key, value, session = false) { try { (session ? sessionStorage : localStorage).setItem(key, JSON.stringify(value)); } catch {} },
   remove(key, session = false) { try { (session ? sessionStorage : localStorage).removeItem(key); } catch {} }
 };
+socket.on('seat_transferred', () => { socket.disconnect(); showScreen('screen-home'); toast('Ghế đã được tiếp tục ở cửa sổ mới.'); });
 let cardsHidden = prefs.read('gang.hiddenCards', false);
 let shareAddresses = [];
 let shareRoomCode = '';
@@ -17,7 +18,7 @@ const modeLabels = { BASIC: 'Cơ bản', ADVANCED: 'Nâng cao', EXPERT: 'Chuyên
 soundEnabled = prefs.read('gang.sound', true);
 $('btn-sound-toggle').textContent = soundEnabled ? '🔊' : '🔇';
 $('btn-sound-toggle').addEventListener('click', () => prefs.write('gang.sound', soundEnabled));
-$('inp-name').value = prefs.read('gang.playerName', '');
+$('inp-name').value = GameValues.readName();
 const invitation = new URLSearchParams(location.search).get('room');
 if (/^[A-Z2-9]{4}$/i.test(invitation || '')) $('inp-code').value = invitation.toUpperCase();
 
@@ -27,7 +28,7 @@ const phonePortrait = window.matchMedia('(max-width: 600px) and (orientation: po
 let focusBeforeRotation = null;
 function updateRotationRequirement() {
   const overlay = $('rotate-device-overlay');
-  const required = touchDevice && phonePortrait.matches && $('screen-game').classList.contains('active');
+  const required = MobileUI.isPhonePortrait() && ($('screen-game').classList.contains('active') || $('screen-uno').classList.contains('active'));
   const wasRequired = !overlay.hidden;
   overlay.hidden = !required;
   document.body.classList.toggle('needs-landscape', required);
@@ -42,7 +43,12 @@ function updateRotationRequirement() {
   }
 }
 const baseShowScreen = showScreen;
-showScreen = function(screenId) { baseShowScreen(screenId); updateRotationRequirement(); };
+showScreen = function(screenId) {
+  const previous = document.querySelector('.screen.active')?.id;
+  baseShowScreen(screenId);
+  if (previous !== screenId) window.scrollTo(0, 0);
+  updateRotationRequirement();
+};
 phonePortrait.addEventListener('change', updateRotationRequirement);
 window.addEventListener('resize', updateRotationRequirement);
 window.addEventListener('orientationchange', updateRotationRequirement);
@@ -78,7 +84,8 @@ function connectionStatus(message) {
 }
 for (const event of ['room_created', 'room_joined', 'room_resumed']) socket.on(event, data => {
   if (data?.profileToken) { try { localStorage.setItem('gang.profileToken', data.profileToken); } catch {} }
-  prefs.write('gang.session', data, true); prefs.write('gang.playerName', $('inp-name').value.trim());
+  prefs.write('gang.session', data, true);
+  localStorage.setItem('chill-thrill:last-room', JSON.stringify({ ...data, savedAt: Date.now() })); GameValues.writeName($('inp-name').value);
   roomCode = data.roomCode; myId = data.playerId; connectionStatus('');
 });
 socket.on('connect', () => {
@@ -98,6 +105,10 @@ socket.on('resume_error', ({ message }) => {
   if (message.includes('hết hạn')) { prefs.remove('gang.session', true); lastState = null; roomCode = ''; myId = null; showScreen('screen-home'); toast(message); connectionStatus(''); }
 });
 socket.on('room_left', () => {
+  const session = prefs.read('gang.session', null, true);
+  if (session?.roomCode === roomCode && session.entryPath) prefs.remove(`chill-thrill:${session.gameId}:${roomCode}`);
+  const last = prefs.read('chill-thrill:last-room', null);
+  if (last?.roomCode === roomCode) prefs.remove('chill-thrill:last-room');
   prefs.remove('gang.session', true); lastState = null; roomCode = ''; myId = null; isHost = false;
   document.querySelectorAll('.modal-backdrop').forEach(el => el.classList.add('hidden'));
   showScreen('screen-home'); shareRoomCode = ''; connectionStatus('');
@@ -116,6 +127,11 @@ function cardButton(card, index, callback) {
 const baseWaiting = renderWaitingRoom;
 renderWaitingRoom = function(state) {
   baseWaiting(state);
+  $('waiting-badge').textContent = 'PHÒNG CHỜ';
+  $('waiting-title').textContent = state.gameId === 'uno' ? 'UNO' : 'The Gang';
+  document.querySelector('.chat-mode-setting').hidden = state.gameId === 'uno';
+  $('disp-member-max').textContent = state.maxPlayers || 6;
+  $('disp-member-hint').textContent = `Cần từ 2 đến ${state.maxPlayers || 6} người chơi`;
   const me = state.players.find(p => p.id === myId);
   const ready = state.players.filter(p => p.ready && p.connected).length;
   $('btn-ready').textContent = me.ready ? '↩ HỦY SẴN SÀNG' : '✓ SẴN SÀNG';
@@ -132,21 +148,37 @@ renderWaitingRoom = function(state) {
   if (!$('modal-management').classList.contains('hidden')) renderManagement();
 };
 async function loadShareAddresses() {
+  const code = roomCode;
   try {
     const response = await fetch('/api/network'); if (!response.ok) throw new Error();
-    shareAddresses = (await response.json()).addresses;
+    const addresses = (await response.json()).addresses;
+    if (roomCode !== code || shareRoomCode !== code) return;
+    shareAddresses = addresses;
     if (!shareAddresses.some(a => a.url === location.origin)) shareAddresses.push({ name: 'Địa chỉ đang mở', url: location.origin, local: /localhost|127\.0\.0\.1/.test(location.hostname) });
     const recommended = /localhost|127\.0\.0\.1/.test(location.hostname) ? shareAddresses.find(a => !a.local)?.url : location.origin;
     $('share-address').replaceChildren(...shareAddresses.map(a => { const option = document.createElement('option'); option.value = a.url; option.textContent = `${a.name}: ${a.url}`; return option; }));
     $('share-address').value = recommended || location.origin; renderShare();
-  } catch { toast('Không đọc được địa chỉ mạng. Thử lại khi máy chủ kết nối.'); shareRoomCode = ''; }
+  } catch {
+    if (roomCode !== code || shareRoomCode !== code) return;
+    const option = document.createElement('option'); option.value = location.origin; option.textContent = `Địa chỉ đang mở: ${location.origin}`;
+    $('share-address').replaceChildren(option);
+    renderShare(false);
+    toast('Không đọc được danh sách địa chỉ mạng. QR dùng địa chỉ máy chủ mặc định.'); shareRoomCode = '';
+  }
 }
 function renderShare() {
   $('share-link').textContent = getShareLink(); $('share-link').href = getShareLink();
-  $('room-qr').src = `/api/rooms/${roomCode}/qr?origin=${encodeURIComponent($('share-address').value)}`;
+  if (roomCode) {
+    const source = `/api/rooms/${roomCode}/qr?origin=${encodeURIComponent($('share-address').value || location.origin)}`;
+    if ($('room-qr').getAttribute('src') !== source) $('room-qr').src = source;
+  }
 }
-$('share-address').onchange = renderShare;
-$('room-qr').onerror = () => toast('Không tải được QR. Bạn vẫn có thể dùng đường dẫn vào phòng.');
+$('share-address').onchange = () => renderShare();
+$('room-qr').onerror = () => {
+  $('room-qr-status').textContent = 'Chưa tải được QR. Bạn vẫn có thể gửi mã hoặc link phòng.';
+  $('room-qr-retry').hidden = false;
+};
+$('room-qr').onload = () => { $('room-qr-status').textContent = ''; $('room-qr-retry').hidden = true; };
 $('btn-ready').onclick = () => send('set_ready', { ready: !lastState.players.find(p => p.id === myId).ready });
 $('strict-chat').onchange = () => send('set_chat_mode', { strict: $('strict-chat').checked });
 $('btn-leave-waiting').onclick = () => send('leave_room');

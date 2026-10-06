@@ -40,7 +40,7 @@ test('Sâm deck has unique cards and distinguishes local formations from Tiến 
 
 test('Sâm declaration priority is stable, late actions close the saved window, and hands stay private', t => {
   const f = fixture(t, 3); assert.equal(f.room.phase, 'SAM_DECLARATION'); assert.equal(f.room.reservations[0].amount, 80);
-  const own = f.manager.buildStateFor(f.room, f.room.players[0].id); assert.equal(own.myHand.length, 10); assert.equal(JSON.stringify(own).includes(f.room.players[1].hand[0].id), false);
+  const own = f.manager.buildStateFor(f.room, f.room.players[0].id); assert.equal(own.myHand.length, 10); assert.equal(JSON.stringify(own).includes(JSON.stringify(f.room.players[1].hand[0].id)), false);
   act(f, 0, 'pass_sam'); act(f, 1, 'declare_sam'); act(f, 2, 'declare_sam');
   assert.equal(f.room.phase, 'SAM_PLAY'); assert.equal(f.room.samDeclarerId, f.room.players[1].id);
   const staleRevision = f.room.revision; f.room.phase = 'SAM_DECLARATION'; f.room.samResponses = Object.fromEntries(f.room.players.map(player => [player.id, null])); f.room.samDeadlineAt = Date.now() - 1;
@@ -51,19 +51,19 @@ test('successful and failed Sâm settle exactly once within the pre-held maximum
   const success = fixture(t, 2); declineSam(success);
   const declarer = success.room.players[0], opponent = success.room.players[1];
   success.room.phase = 'SAM_PLAY'; success.room.samDeclarerId = declarer.id; success.room.currentPlayerId = declarer.id; success.room.leaderId = declarer.id; success.room.topPlay = null; success.room.playedAny = true; declarer.hand = [card('3', 'S')];
-  act(success, 0, 'play', { cardIds: ['3S'] }); assert.equal(success.room.result.kind, 'SAM_SUCCESS'); assert.deepEqual(success.profiles.map(profile => success.store.publicProfile(profile.id).wallet), [{ available: 1040, reserved: 0 }, { available: 960, reserved: 0 }]);
-  const balances = success.profiles.map(profile => success.store.publicProfile(profile.id).wallet.available); success.manager.finishSam(success.room, declarer, true, 'Báo Sâm thành công: đánh hết 10 lá.'); assert.deepEqual(success.profiles.map(profile => success.store.publicProfile(profile.id).wallet.available), balances);
+  act(success, 0, 'play', { cardIds: ['3S'] }); assert.equal(success.room.result.kind, 'SAM_SUCCESS'); assert.deepEqual(success.profiles.map(profile => success.store.publicProfile(profile.id).balances.coin), [{ available: 1040, reserved: 0 }, { available: 960, reserved: 0 }]);
+  const balances = success.profiles.map(profile => success.store.publicProfile(profile.id).balances.coin.available); success.manager.finishSam(success.room, declarer, true, 'Báo Sâm thành công: đánh hết 10 lá.'); assert.deepEqual(success.profiles.map(profile => success.store.publicProfile(profile.id).balances.coin.available), balances);
 
   const failure = fixture(t, 2); declineSam(failure); const failed = failure.room.players[0], blocker = failure.room.players[1];
   failure.room.phase = 'SAM_PLAY'; failure.room.samDeclarerId = failed.id; failure.room.currentPlayerId = failed.id; failure.room.leaderId = blocker.id; failure.room.playedAny = true; failure.room.topPlay = { playerId: blocker.id, formation: classify([card('A', 'S')]), cards: [card('A', 'S')] }; failed.hand = [card('3', 'S')];
-  act(failure, 0, 'pass'); assert.equal(failure.room.result.kind, 'SAM_FAILED'); assert.equal(failure.room.result.winnerId, blocker.id); assert.deepEqual(failure.profiles.map(profile => failure.store.publicProfile(profile.id).wallet), [{ available: 960, reserved: 0 }, { available: 1040, reserved: 0 }]);
+  act(failure, 0, 'pass'); assert.equal(failure.room.result.kind, 'SAM_FAILED'); assert.equal(failure.room.result.winnerId, blocker.id); assert.deepEqual(failure.profiles.map(profile => failure.store.publicProfile(profile.id).balances.coin), [{ available: 960, reserved: 0 }, { available: 1040, reserved: 0 }]);
 });
 
 test('Báo một penalty is additive only in a normal hand and the maximum hold covers it', t => {
   const f = fixture(t, 2); declineSam(f); const first = f.room.players[0], second = f.room.players[1];
   f.room.phase = 'TURN'; f.room.currentPlayerId = first.id; f.room.leaderId = first.id; f.room.topPlay = null; f.room.playedAny = false; first.hand = [card('3', 'S'), card('4', 'S')]; second.hand = [card('5', 'S')]; f.room.initialRequiredCardId = '3S';
   act(f, 0, 'play', { cardIds: ['3S'] }); assert.equal(f.room.oneCall.playerId, first.id); assert.equal(f.room.currentPlayerId, second.id);
-  act(f, 1, 'play', { cardIds: ['5S'] }); assert.equal(f.room.result.kind, 'BAO_MOT_BLOCKED'); assert.deepEqual(f.room.result.outcomes.map(item => item.delta), [-2 * STAKE, 2 * STAKE]); assert.deepEqual(f.profiles.map(profile => f.store.publicProfile(profile.id).wallet), [{ available: 960, reserved: 0 }, { available: 1040, reserved: 0 }]);
+  act(f, 1, 'play', { cardIds: ['5S'] }); assert.equal(f.room.result.kind, 'BAO_MOT_BLOCKED'); assert.deepEqual(f.room.result.outcomes.map(item => item.delta), [-2 * STAKE, 2 * STAKE]); assert.deepEqual(f.profiles.map(profile => f.store.publicProfile(profile.id).balances.coin), [{ available: 960, reserved: 0 }, { available: 1040, reserved: 0 }]);
 });
 
 test('a saved Sâm declaration window restores paused with private hands and the same holds', t => {
@@ -74,6 +74,6 @@ test('a saved Sâm declaration window restores paused with private hands and the
   manager.setReady(first, room.code, true); manager.setReady(second, room.code, true); manager.startGame(first, room.code); const deadline = room.samDeadlineAt; manager.close();
   const restoredIo = fakeIo(), firstBack = socket('first-back', firstProfile.profile), secondBack = socket('second-back', secondProfile.profile); restoredIo.sockets.sockets.set(firstBack.id, firstBack); restoredIo.sockets.sockets.set(secondBack.id, secondBack);
   manager = new SamLocManager(restoredIo, { profileStore: store, profileForSocket: item => item.profile, storageFile, shuffle: deterministicShuffle }); t.after(() => { manager.close(); store.close(); fs.rmSync(directory, { recursive: true, force: true }); });
-  const restored = manager.rooms.get(created.roomCode); assert.equal(restored.phase, 'SAM_DECLARATION'); assert.equal(restored.paused, true); assert.equal(restored.samDeadlineAt, deadline); assert.deepEqual([firstProfile, secondProfile].map(item => store.publicProfile(item.profile.id).wallet), [{ available: 960, reserved: 40 }, { available: 960, reserved: 40 }]);
-  manager.resumeRoom(firstBack, created.roomCode, created.sessionToken); manager.resumeRoom(secondBack, created.roomCode, joined.sessionToken); assert.equal(manager.rooms.get(created.roomCode).paused, false); const state = manager.buildStateFor(manager.rooms.get(created.roomCode), created.playerId); assert.equal(state.myHand.length, 10); assert.equal(JSON.stringify(state).includes(manager.rooms.get(created.roomCode).players[1].hand[0].id), false);
+  const restored = manager.rooms.get(created.roomCode); assert.equal(restored.phase, 'SAM_DECLARATION'); assert.equal(restored.paused, true); assert.equal(restored.samDeadlineAt, deadline); assert.deepEqual([firstProfile, secondProfile].map(item => store.publicProfile(item.profile.id).balances.coin), [{ available: 960, reserved: 40 }, { available: 960, reserved: 40 }]);
+  manager.resumeRoom(firstBack, created.roomCode, created.sessionToken); manager.resumeRoom(secondBack, created.roomCode, joined.sessionToken); assert.equal(manager.rooms.get(created.roomCode).paused, false); const state = manager.buildStateFor(manager.rooms.get(created.roomCode), created.playerId); assert.equal(state.myHand.length, 10); assert.equal(JSON.stringify(state).includes(JSON.stringify(manager.rooms.get(created.roomCode).players[1].hand[0].id)), false);
 });

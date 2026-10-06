@@ -6,7 +6,18 @@
   <meta name="theme-color" content="#24314d">
   <title>UNO · Chill & Thrill</title>
   <link rel="stylesheet" href="/css/fonts.css">
+  <link rel="icon" type="image/webp" href="/assets/game/logo.webp">
+  <link rel="apple-touch-icon" href="/assets/game/logo.webp">
   <link rel="stylesheet" href="/css/uno.css">
+  <link rel="stylesheet" href="/css/table-shell.css">
+  <link rel="stylesheet" href="/css/table-preferences.css">
+  <link rel="stylesheet" href="/css/preflight.css">
+  <link rel="stylesheet" href="/css/storage-status.css">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Chill &amp; Thrill">
+  <link rel="stylesheet" href="/css/shared-ui.css">
+  <link rel="stylesheet" href="/css/context-help.css">
 </head>
 <body>
   <div class="uno-shell">
@@ -22,8 +33,8 @@
         <label>Avatar<select id="avatar"><option>🕶️</option><option>🥷</option><option>💻</option><option>🔓</option><option>🎲</option><option>🏎️</option></select></label>
         <button id="create" class="primary">Tạo phòng UNO</button>
         <div class="or">hoặc vào phòng có sẵn</div>
-        <div class="join-row"><input id="room-code" maxlength="4" autocomplete="off" placeholder="MÃ PHÒNG"><button id="join">Vào phòng</button></div>
-        <p class="small">Luật bản local v1: không cộng dồn +2/+4; phản đối +4 có hiệu lực trước khi rút.</p>
+        <div class="join-row"><input id="room-code" inputmode="text" autocapitalize="characters" aria-label="Mã phòng 4 ký tự" maxlength="4" autocomplete="off" placeholder="MÃ PHÒNG"><button id="join">Vào phòng</button></div>
+        <p class="small">Luật bản : không cộng dồn +2/+4; phản đối +4 có hiệu lực trước khi rút.</p>
       </section>
 
       <section id="room-view" class="view card" hidden>
@@ -36,7 +47,7 @@
       </section>
 
       <section id="game-view" class="view" hidden>
-        <div class="game-header card"><div><p class="eyebrow">PHÒNG <span id="game-room"></span></p><h1>UNO</h1></div><button id="game-leave">Rời sau ván</button></div>
+        <div class="game-header card"><div><p class="eyebrow">PHÒNG <span id="game-room"></span></p><h1>UNO</h1></div><div class="uno-leave-actions"><button id="game-leave-after-hand" hidden>Rời sau ván</button><button id="game-leave">Hủy ván &amp; rời</button></div></div>
         <div id="phase-banner" class="phase-banner" role="status"></div>
         <div id="players" class="player-grid game-players"></div>
         <section class="table card">
@@ -51,8 +62,23 @@
       </section>
     </main>
   </div>
+  <script src="/js/game-values.js"></script>
+  <script src="/js/mobile-ui.js"></script>
   <script src="/socket.io/socket.io.js"></script>
+  <script src="/js/table-preferences.js"></script>
   <script src="/js/uno.js"></script>
-<script src="/js/game-session.js"></script>
+<script src="/js/room-access.js"></script>
+  <script src="/js/room-create.js"></script>
+  <script src="/js/game-session.js"></script>
+  <script src="/js/room-shell.js"></script>
+  <script src="/js/table-shell.js"></script>
+  <script src="/js/turn-clock.js"></script>
+  <script src="/js/tutorial-content.js"></script>
+  <script src="/js/context-help.js"></script>
+  <script src="/js/context-help-ui.js"></script>
+  <script src="/js/storage-status.js"></script>
+  <script src="/js/storage-warning.js"></script>
+  <script src="/js/preflight.js"></script>
+  <script src="/js/preflight-mount.js"></script>
 </body>
 </html>

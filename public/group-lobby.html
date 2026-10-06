@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#101318">
+  <title>Sảnh nhóm · Chill &amp; Thrill</title>
+  <link rel="stylesheet" href="/css/group-lobby.css">
+</head>
+<body>
+  <main class="group-shell">
+    <header class="group-header">
+      <a class="brand" href="/" aria-label="Về Chill &amp; Thrill"><span class="brand-mark">C&amp;T</span><span>CHILL &amp; THRILL</span></a>
+      <span class="eyebrow">CHƠI CÙNG MỘT NHÓM</span>
+      <h1>Sảnh nhóm</h1>
+      <p>Host đề xuất game. Mọi người xem cùng một cấu hình và xác nhận trước khi chuyển bàn.</p>
+    </header>
+
+    <div id="notice" class="notice" role="status" aria-live="polite"></div>
+    <section id="entry" class="entry-grid" aria-label="Tạo hoặc tham gia sảnh nhóm">
+      <article class="panel entry-card">
+        <span class="step">01 · HOST</span>
+        <h2>Tạo sảnh nhóm</h2>
+        <p>Tạo một mã mời riêng rồi gửi cho cả nhóm. Mỗi người chỉ cần tham gia một lần.</p>
+        <button id="create-group" class="button button-primary" type="button">Tạo sảnh</button>
+      </article>
+      <article class="panel entry-card">
+        <span class="step">01 · THÀNH VIÊN</span>
+        <h2>Tham gia sảnh</h2>
+        <label for="invite-input">Mã mời nhóm</label>
+        <input id="invite-input" autocomplete="off" spellcheck="false" placeholder="Dán mã mời do host gửi">
+        <button id="join-group" class="button button-secondary" type="button">Tham gia nhóm</button>
+      </article>
+    </section>
+
+    <section id="lobby" class="panel lobby hidden" aria-labelledby="lobby-title">
+      <div class="lobby-top">
+        <div>
+          <span class="step">SẢNH NHÓM · <span id="revision-label">REV 1</span></span>
+          <h2 id="lobby-title">Đang tải nhóm…</h2>
+          <p id="expiry-label" class="muted"></p>
+        </div>
+        <button id="leave-group" class="button button-quiet" type="button">Rời sảnh</button>
+      </div>
+
+      <p><a id="tournament-link" class="button button-secondary" href="/groups/tournament.html">Giải đấu &amp; bảng xếp hạng nhóm</a></p>
+      <div class="columns">
+        <section class="subpanel" aria-labelledby="members-heading">
+          <div class="section-heading"><h3 id="members-heading">Thành viên</h3><span id="member-count" class="count-pill">0</span></div>
+          <ul id="members" class="member-list"></ul>
+          <div id="host-tools" class="host-tools hidden">
+            <button id="rotate-invite" class="button button-quiet" type="button">Tạo mã mời mới</button>
+            <label for="host-target">Chuyển host</label>
+            <div class="inline-control"><select id="host-target"></select><button id="transfer-host" class="button button-quiet" type="button">Chuyển</button></div>
+          </div>
+        </section>
+
+        <section class="subpanel" aria-labelledby="proposal-heading">
+          <div class="section-heading"><h3 id="proposal-heading">Game kế tiếp</h3><span id="proposal-status" class="status-pill">Chưa đề xuất</span></div>
+          <div id="invite-share" class="invite-share hidden">
+            <label for="invite-output">Mã mời riêng · gửi cho bạn bè</label>
+            <div class="inline-control"><input id="invite-output" readonly><button id="copy-invite" class="button button-quiet" type="button">Sao chép</button></div>
+          </div>
+          <form id="proposal-form" class="proposal-form hidden">
+            <label for="game-select">Game</label>
+            <select id="game-select">
+              <option value="the-gang">The Gang</option>
+              <option value="uno">UNO</option>
+              <option value="tien-len">Tiến lên</option>
+              <option value="poker">Poker Texas Hold’em</option>
+              <option value="sam-loc">Sâm lốc</option>
+              <option value="phom">Phỏm</option>
+              <option value="bang">BANG!</option>
+            </select>
+            <div id="variant-wrap" class="field-row hidden">
+              <div><label for="variant-select">Biến thể UNO</label><select id="variant-select"><option value="classic-local-v1">112 lá · 2–4 người</option><option value="classic-108-v1">108 lá · 2–6 người</option></select></div>
+            </div>
+            <div class="field-row">
+              <div><label for="max-players">Số ghế tối đa</label><select id="max-players"></select></div>
+              <div id="stake-wrap" class="hidden"><label for="stake">Cược mỗi người · coin</label><input id="stake" type="number" min="1" step="1" value="100"></div>
+            </div>
+            <label for="room-name">Tên bàn</label>
+            <input id="room-name" maxlength="32" value="Bàn của nhóm">
+            <button class="button button-primary" type="submit">Đề xuất cấu hình này</button>
+          </form>
+          <div id="proposal-summary" class="proposal-summary hidden"></div>
+          <div id="proposal-actions" class="proposal-actions hidden">
+            <button id="confirm-proposal" class="button button-secondary" type="button">Xác nhận đề xuất</button>
+            <button id="switch-game" class="button button-primary" type="button">Chuyển cả nhóm</button>
+          </div>
+          <div id="transition-summary" class="transition-summary hidden"></div>
+          <button id="enter-new-room" class="button button-primary hidden" type="button">Vào bàn mới</button>
+        </section>
+      </div>
+      <p class="privacy-note">Mã hồ sơ không nằm trong link mời. Mã ghế riêng chỉ được gửi trực tiếp cho chủ hồ sơ đó.</p>
+    </section>
+  </main>
+  <script src="/socket.io/socket.io.js" defer></script>
+  <script src="/js/group-lobby.js" defer></script>
+</body>
+</html>

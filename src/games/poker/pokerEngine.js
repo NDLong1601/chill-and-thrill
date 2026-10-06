@@ -1,10 +1,15 @@
 'use strict';
 
+const { notifyRoomCommitted } = require('../../platform/roomCommitEvents');
+
 const crypto = require('node:crypto');
 const fs = require('node:fs');
 const path = require('node:path');
+const { runStorageOperation } = require('../../platform/storageDiagnostics');
 const { getBestHand } = require('../../handEvaluator');
 const { createPokerDeck, shuffle, labelCard } = require('./pokerDeck');
+const { installTurnClock, standardTurn } = require('../../platform/turnClock');
+const { DEFAULT_RECONNECT_GRACE_MS, markDisconnected, markConnected, restoreDisconnectedSeats, isReconnectExpired, reconnectWaiters, isServerActionSocket, serverActionPlayer, runServerAction } = require('../../platform/reconnectGrace');
 
 const AVATARS = ['🕶️', '🥷', '💻', '🔓', '🎲', '🏎️'];
 const ACTIVE_PHASES = new Set(['HAND']);
@@ -14,7 +19,7 @@ const MIN_BUY_IN = 200;
 const MAX_BUY_IN = 1000;
 const MIN_TO_START = BIG_BLIND;
 const now = () => Date.now();
-const cleanName = value => String(value || '').trim().slice(0, 18) || 'Player';
+const cleanName = value => require('../../../public/js/game-values').cleanDisplayName(value) || 'Player';
 
 function validAmount(value) { return Number.isSafeInteger(value) && value > 0; }
 function contributionPots(players) {
@@ -54,14 +59,27 @@ class PokerManager {
     this.rooms = new Map();
     this.playerRoom = new Map();
     this.storageFile = options.storageFile || null;
-    this.graceMs = options.graceMs ?? 120000;
+    this.graceMs = options.graceMs ?? DEFAULT_RECONNECT_GRACE_MS;
     this.codeTaken = typeof options.codeTaken === 'function' ? options.codeTaken : () => false;
     this.profileForSocket = typeof options.profileForSocket === 'function' ? options.profileForSocket : () => null;
     this.profileStore = options.profileStore;
     this.onMatchCompleted = typeof options.onMatchCompleted === 'function' ? options.onMatchCompleted : null;
     this.shuffle = typeof options.shuffle === 'function' ? options.shuffle : shuffle;
+    this.storageDiagnostics = options.storageDiagnostics || this.profileStore?.storageDiagnostics || null;
     this.load();
-    this.cleanupTimer = setInterval(() => this.cleanup(), 30000);
+    // Poker waits only for seats that can still affect this hand. Keep this
+    // decision in the clock callback as well as in access/disconnect paths so
+    // irrelevant offline seats never freeze the saved turn deadline.
+    installTurnClock(this, { getTurn: room => {
+      this.updatePaused(room);
+      return standardTurn(room);
+    }, timeoutAction: (room, player) => {
+      const action = room.currentBet === player.roundBet ? 'check' : 'fold';
+      const result = runServerAction(this, room, player, { action });
+      if (!result?.error) this.addLog(room, `${player.name} hết 30 giây; server ${action} theo lượt Poker.`);
+      return result;
+    } });
+    this.cleanupTimer = setInterval(() => this.cleanup(), 1000);
     this.cleanupTimer.unref();
   }
 
@@ -92,6 +110,7 @@ class PokerManager {
     } finally { this.mutationDepth = 0; }
     const effects = this.pendingEffects; this.pendingEffects = [];
     for (const effect of effects) effect();
+    if (JSON.stringify(room) !== JSON.stringify(previous)) notifyRoomCommitted(this, room.code);
     if (this.flushPending) this.flush(); else this.saveSoon();
     return result;
   }
@@ -100,22 +119,33 @@ class PokerManager {
   newPlayer(socket, name, avatar, isHost = false) {
     const profile = this.profileForSocket(socket);
     return { id: crypto.randomUUID(), token: crypto.randomBytes(32).toString('hex'), socketId: socket.id, profileId: profile?.id || null,
-      name: profile?.displayName || cleanName(name), avatar: profile?.avatar || (AVATARS.includes(avatar) ? avatar : AVATARS[0]),
+      name: cleanName(profile?.displayName || name), avatar: profile?.avatar || (AVATARS.includes(avatar) ? avatar : AVATARS[0]),
       isHost, connected: true, disconnectedAt: null, ready: false, stack: 0, reservations: [], holeCards: [], inHand: false,
       folded: false, allIn: false, roundBet: 0, totalContribution: 0, lastActionBet: null, handStartingStack: 0, leaveAfterHand: false };
   }
   credentials(room, player) { return { roomCode: room.code, playerId: player.id, sessionToken: player.token, gameId: 'poker' }; }
-  player(room, socket) { return room?.players.find(item => item.socketId === socket.id && item.connected); }
+  player(room, socket) { return serverActionPlayer(this, room, socket) || room?.players.find(item => item.socketId === socket.id && item.connected); }
   byId(room, id) { return room.players.find(item => item.id === id); }
+  reconnectAffects(room, player) { return room.phase === 'HAND' && player.inHand && !player.folded; }
+  reconnectWaiters(room, at = now()) { return reconnectWaiters(room, at, this.graceMs, player => this.reconnectAffects(room, player)); }
+  updatePaused(room, at = now()) {
+    const wasPaused = !!room.paused;
+    const waiting = this.reconnectWaiters(room, at);
+    room.paused = waiting.length > 0;
+    return { wasPaused, waiting };
+  }
   bind(socket, room, player) {
-    this.playerRoom.set(socket.id, room.code); socket.join(room.code); player.socketId = socket.id; player.connected = true; player.disconnectedAt = null;
-    if (room.paused && !room.players.some(item => !item.connected)) { room.paused = false; this.addLog(room, 'Mọi người đã kết nối lại; hand tiếp tục.'); this.touch(room); }
+    player.name = cleanName(this.profileForSocket(socket)?.displayName || player.name);
+    this.playerRoom.set(socket.id, room.code); socket.join(room.code); player.socketId = socket.id; markConnected(player);
+    const { wasPaused, waiting } = this.updatePaused(room);
+    if (wasPaused && !waiting.length) { this.addLog(room, 'Mọi người còn ảnh hưởng đến hand đã kết nối lại; hand tiếp tục.'); this.touch(room); }
   }
   access(socket, code, phases) {
     const room = this.rooms.get(code), player = this.player(room, socket);
     if (!room || !player) return this.error(socket, 'Bạn không còn ở bàn Poker này.');
     if (phases && !phases.includes(room.phase)) return this.error(socket, 'Thao tác không phù hợp với giai đoạn hiện tại.');
-    if (ACTIVE_PHASES.has(room.phase) && (room.paused || room.players.some(item => item.inHand && !item.connected))) return this.error(socket, 'Hand đang tạm dừng do có người trong hand mất kết nối.');
+    const { waiting } = this.updatePaused(room);
+    if (!isServerActionSocket(this, socket) && ACTIVE_PHASES.has(room.phase) && waiting.length) return this.error(socket, `Hand đang tạm dừng; cần chờ ${waiting.map(item => item.name).join(', ')} kết nối lại.`);
     return { room, player };
   }
   ensureHost(room) { if (room.players.some(player => player.isHost && player.connected)) return; const next = room.players.find(player => player.connected) || room.players[0]; room.players.forEach(player => { player.isHost = player === next; }); }
@@ -181,7 +211,7 @@ class PokerManager {
     return this.commitRoom(room, () => this.applyStartHand(room, seats));
   }
   applyStartHand(room, seats) {
-    room.phase = 'HAND'; room.matchId = crypto.randomUUID(); room.result = null; room.actionIds = {}; room.deck = this.shuffle(createPokerDeck()); room.community = []; room.street = 'PREFLOP'; room.currentBet = BIG_BLIND; room.lastFullRaise = BIG_BLIND; room.paused = false;
+    room.reconnectPolicyVersion = 2; room.phase = 'HAND'; room.matchId = crypto.randomUUID(); room.result = null; room.actionIds = {}; room.deck = this.shuffle(createPokerDeck()); room.community = []; room.street = 'PREFLOP'; room.currentBet = BIG_BLIND; room.lastFullRaise = BIG_BLIND; room.paused = false;
     const button = this.moveButton(room, seats); room.buttonPlayerId = button.id;
     room.players.forEach(player => {
       player.inHand = seats.includes(player); player.holeCards = []; player.folded = !player.inHand; player.allIn = false; player.roundBet = 0; player.totalContribution = 0; player.lastActionBet = null; player.handStartingStack = player.stack; player.leaveAfterHand = false;
@@ -231,7 +261,7 @@ class PokerManager {
   }
   applyBuyIn(socket, room, player, data) {
     if (!['WAITING', 'RESULT'].includes(room.phase)) return this.error(socket, 'Chỉ buy-in hoặc top-up giữa các hand.');
-    const amount = Number(data.amount); if (!validAmount(amount) || amount % BIG_BLIND !== 0) return this.error(socket, `Buy-in phải là bội số ${BIG_BLIND} chip.`);
+    let amount; try { amount = require('../../../public/js/game-values').parseAmount(data.amount, { max: MAX_BUY_IN }); } catch (error) { return this.error(socket, error.message); } if (!validAmount(amount) || amount % BIG_BLIND !== 0) return this.error(socket, `Buy-in phải là bội số ${BIG_BLIND} chip.`);
     if (player.stack === 0 && (amount < MIN_BUY_IN || amount > MAX_BUY_IN)) return this.error(socket, `Buy-in đầu tiên từ ${MIN_BUY_IN} đến ${MAX_BUY_IN} chip.`);
     if (player.stack > 0 && player.stack + amount > MAX_BUY_IN) return this.error(socket, `Stack tối đa là ${MAX_BUY_IN} chip.`);
     try {
@@ -261,7 +291,7 @@ class PokerManager {
     let target;
     if (action === 'all_in') target = player.roundBet + player.stack;
     else {
-      target = Number(data.total);
+      try { target = require('../../../public/js/game-values').parseAmount(data.total, { max: player.roundBet + player.stack }); } catch (error) { return this.error(socket, error.message); }
       if (!Number.isSafeInteger(target)) return this.error(socket, 'Tổng cược phải là số chip nguyên.');
       if (action === 'bet' && room.currentBet !== 0) return this.error(socket, 'Vòng này đã có cược; hãy tố đến tổng mới.');
       if (action === 'raise' && room.currentBet === 0) return this.error(socket, 'Chưa có cược; hãy bet hoặc all-in.');
@@ -340,6 +370,8 @@ class PokerManager {
     } else ({ pots, payouts, scores } = this.resolvePots(room, room.players.filter(player => player.inHand && !player.folded)));
     for (const player of room.players) player.stack += payouts.get(player.id) || 0;
     const completedAt = new Date().toISOString();
+    const soleWinnerId = pots.length === 1 && pots[0].winners.length === 1 ? pots[0].winners[0] : (outcome.kind === 'fold' ? outcome.winner.id : null);
+    room.players.forEach(p => { p.winStreak = (soleWinnerId && p.id === soleWinnerId) ? (p.winStreak || 0) + 1 : 0; });
     const result = { matchId: room.matchId, completedAt, reason: outcome.kind === 'fold' ? `${outcome.winner.name} thắng do mọi người khác fold` : 'Showdown',
       community: [...room.community], pot: pots.reduce((sum, pot) => sum + pot.amount, 0), refunds, pots: pots.map(pot => ({ ...pot, winnerNames: pot.winners.map(id => this.byId(room, id)?.name || '') })),
       showdown: outcome.kind === 'showdown' ? room.players.filter(player => player.inHand && !player.folded).map(player => ({ playerId: player.id, cards: player.holeCards, hand: scores.get(player.id)?.nameVi, score: scores.get(player.id)?.score })) : [],
@@ -375,18 +407,19 @@ class PokerManager {
     this.ensureHost(room); this.addLog(room, `${player.name} cash-out và rời bàn.`);
   }
   leaveRoom(socket, code) {
-    const ctx = this.access(socket, code); if (!ctx || ctx.error) return ctx; const { room, player } = ctx;
+    const room = this.rooms.get(code), player = this.player(room, socket); if (!room || !player || isServerActionSocket(this, socket)) return this.error(socket, 'Bạn không còn ở bàn Poker này.');
     if (room.phase === 'HAND' && player.inHand) { player.leaveAfterHand = true; this.addLog(room, `${player.name} sẽ cash-out và rời sau hand.`); this.touch(room); this.broadcast(code); return { queued: true }; }
     try { this.cashOutAndRemove(room, player, socket); if (!room.players.length) { this.rooms.delete(room.code); this.saveSoon(); } else { this.touch(room); this.broadcast(code); } return { ok: true }; } catch (error) { return this.error(socket, error.message || 'Không thể cash-out an toàn.'); }
   }
   syncState(socket, code) { const ctx = this.access(socket, code); if (ctx && !ctx.error) socket.emit('game_state', this.buildStateFor(ctx.room, ctx.player.id)); return ctx; }
   handleDisconnect(socket) {
     const code = this.playerRoom.get(socket.id), room = this.rooms.get(code), player = this.player(room, socket); this.playerRoom.delete(socket.id); if (!player) return;
-    player.connected = false; player.socketId = null; player.disconnectedAt = now(); this.ensureHost(room); if (room.phase === 'HAND' && player.inHand) room.paused = true;
-    this.addLog(room, `${player.name} mất kết nối${player.inHand ? '; hand tạm dừng để giữ stack.' : '.'}`); this.touch(room); this.broadcast(code);
+    markDisconnected(player, now(), this.graceMs); this.ensureHost(room);
+    const { waiting } = this.updatePaused(room);
+    this.addLog(room, `${player.name} mất kết nối; có 120 giây để khôi phục ghế${waiting.includes(player) ? '; hand đang chờ người còn ảnh hưởng.' : '; hand tiếp tục theo các ghế còn cần hành động.'}`); this.touch(room); this.broadcast(code); this.flush();
   }
   legalActions(room, player) {
-    if (!player || room.phase !== 'HAND' || room.currentPlayerId !== player.id || room.paused) return null;
+    if (!player || room.phase !== 'HAND' || room.currentPlayerId !== player.id || this.updatePaused(room).waiting.length) return null;
     const toCall = Math.max(0, room.currentBet - player.roundBet), maxTotal = player.roundBet + player.stack;
     const canRaise = player.lastActionBet === null || room.currentBet - player.lastActionBet >= room.lastFullRaise;
     return { toCall, callAmount: Math.min(toCall, player.stack), canFold: true, canCheck: toCall === 0, canCall: toCall > 0, canBet: room.currentBet === 0 && player.stack > 0,
@@ -399,10 +432,10 @@ class PokerManager {
       smallBlindPlayerId: room.smallBlindPlayerId || null, bigBlindPlayerId: room.bigBlindPlayerId || null, currentPlayerId: room.currentPlayerId, street: room.street, currentBet: room.currentBet,
       lastFullRaise: room.lastFullRaise, community: room.community, myHoleCards: me?.holeCards || [], myStack: me?.stack || 0, wallet, legalActions: this.legalActions(room, me),
       pot: room.players.reduce((sum, player) => sum + player.totalContribution, 0), sidePots: contributionPots(room.players).map(pot => ({ amount: pot.amount, eligiblePlayerIds: pot.eligible })), result: room.result, log: room.log,
-      players: room.players.map(player => ({ id: player.id, name: player.name, avatar: player.avatar, isHost: player.isHost, ready: player.ready, connected: player.connected, stack: player.stack,
-        inHand: player.inHand, folded: player.folded, allIn: player.allIn, roundBet: player.roundBet, totalContribution: player.totalContribution, leaveAfterHand: player.leaveAfterHand })) };
+      players: room.players.map(player => ({ id: player.id, name: cleanName(player.name), avatar: player.avatar, isHost: player.isHost, ready: player.ready, connected: player.connected, stack: player.stack, balance: player.stack,
+        inHand: player.inHand, folded: player.folded, allIn: player.allIn, roundBet: player.roundBet, totalContribution: player.totalContribution, leaveAfterHand: player.leaveAfterHand, winStreak: player.winStreak || 0, revealedHand: room.phase === 'RESULT' ? (player.inHand && !player.folded ? player.holeCards : undefined) : undefined })) };
   }
-  broadcast(code) { const room = this.rooms.get(code); if (!room) return; room.updatedAt = now(); this.persistRoom(room); this.afterCommit(() => { for (const player of room.players) { const socket = this.io.sockets.sockets.get(player.socketId); if (socket && player.connected) socket.emit('game_state', this.buildStateFor(room, player.id)); } this.saveSoon(); }); }
+  broadcast(code) { const room = this.rooms.get(code); if (!room) return; room.updatedAt = now(); this.persistRoom(room); this.afterCommit(() => { for (const player of room.players) { const socket = this.io.sockets.sockets.get(player.socketId); if (socket && player.connected) socket.emit('game_state', this.buildStateFor(room, player.id)); } notifyRoomCommitted(this, code); this.saveSoon(); }); }
   expireRoom(room) {
     return this.commitRoom(room, () => {
       // An abandoned hand is cancelled: return every wager, including folded
@@ -416,11 +449,13 @@ class PokerManager {
     });
   }
   cleanup() {
+    const at = now();
     for (const room of [...this.rooms.values()]) {
-      if (room.phase === 'HAND' && !room.players.some(player => player.inHand && player.connected) && now() - room.updatedAt > 12 * 3600000) {
+      this.updatePaused(room);
+      if (room.phase === 'HAND' && room.reconnectPolicyVersion !== 2 && !room.players.some(player => player.inHand && player.connected) && at - room.updatedAt > 12 * 3600000) {
         try { this.expireRoom(room); } catch (error) { console.error('Không thể cash-out bàn Poker hết hạn:', error.message); }
       } else if (room.phase !== 'HAND') {
-        const expired = room.players.filter(player => !player.connected && now() - player.disconnectedAt > this.graceMs);
+        const expired = room.players.filter(player => isReconnectExpired(player, at, this.graceMs));
         try { expired.forEach(player => this.cashOutAndRemove(room, player)); if (!room.players.length) this.rooms.delete(room.code); else if (expired.length) { this.touch(room); this.broadcast(room.code); } } catch (error) { console.error('Không thể cash-out ghế Poker hết hạn:', error.message); }
       }
     }
@@ -429,8 +464,11 @@ class PokerManager {
     const recovered = new Map();
     if (this.storageFile && fs.existsSync(this.storageFile)) {
       try {
-        const saved = JSON.parse(fs.readFileSync(this.storageFile, 'utf8'));
-        if (saved.version !== 1 || !Array.isArray(saved.rooms)) throw new Error('Định dạng lưu Poker không hợp lệ');
+        const saved = runStorageOperation(this.storageDiagnostics, 'manager:poker-json', 'read', 'legacy-json-read', () => {
+          const data = JSON.parse(fs.readFileSync(this.storageFile, 'utf8'));
+          if (data.version !== 1 || !Array.isArray(data.rooms)) throw new Error('Định dạng lưu Poker không hợp lệ');
+          return data;
+        }, { recoveryVerified: true, failureCode: 'LEGACY_ROOM_READ_FAILED' });
         for (const room of saved.rooms) recovered.set(room.code, room);
       } catch (error) { console.error('Không đọc được tệp Poker:', error.message); this.storageError = true; }
     }
@@ -441,18 +479,18 @@ class PokerManager {
       else recovered.set(saved.roomCode, JSON.parse(saved.stateJson));
     }
     for (const room of recovered.values()) {
-      room.players.forEach(player => { player.connected = false; player.socketId = null; player.disconnectedAt = now(); });
-      room.paused = room.phase === 'HAND'; this.rooms.set(room.code, room);
+      restoreDisconnectedSeats(room.players, now(), this.graceMs);
+      this.rooms.set(room.code, room); this.updatePaused(room);
     }
     for (const room of [...this.rooms.values()]) {
       try {
-        if (now() - room.updatedAt > 12 * 3600000) this.expireRoom(room);
+        if (now() - room.updatedAt > 12 * 3600000 && room.reconnectPolicyVersion !== 2) this.expireRoom(room);
         else this.persistRoom(room);
       } catch (error) { console.error('Không thể khôi phục an toàn bàn Poker:', error.message); this.storageError = true; }
     }
   }
   saveSoon() { if (!this.storageFile || this.storageError || this.saveTimer) return; this.saveTimer = setTimeout(() => { this.saveTimer = null; this.flush(); }, 100); this.saveTimer.unref(); }
-  flush() { if (this.mutationDepth) { this.flushPending = true; return; } if (!this.storageFile || this.storageError) return; try { fs.mkdirSync(path.dirname(this.storageFile), { recursive: true }); fs.writeFileSync(`${this.storageFile}.tmp`, JSON.stringify({ version: 1, rooms: [...this.rooms.values()] }), { mode: 0o600 }); fs.renameSync(`${this.storageFile}.tmp`, this.storageFile); } catch (error) { console.error('Không lưu được dữ liệu phòng Poker:', error.message); } }
+  flush() { if (this.mutationDepth) { this.flushPending = true; return; } if (!this.storageFile || this.storageError) return; try { runStorageOperation(this.storageDiagnostics, 'export:poker', 'export', 'room-json-export', () => { fs.mkdirSync(path.dirname(this.storageFile), { recursive: true }); fs.writeFileSync(`${this.storageFile}.tmp`, JSON.stringify({ version: 1, rooms: [...this.rooms.values()] }), { mode: 0o600 }); fs.renameSync(`${this.storageFile}.tmp`, this.storageFile); }, { failureCode: 'ROOM_JSON_EXPORT_FAILED' }); } catch (error) { console.error('Không lưu được dữ liệu phòng Poker:', error.message); } }
 }
 
 module.exports = { PokerManager, SMALL_BLIND, BIG_BLIND, MIN_BUY_IN, MAX_BUY_IN, contributionPots, refundUncalled };

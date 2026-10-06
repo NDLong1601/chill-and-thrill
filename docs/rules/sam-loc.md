@@ -28,11 +28,11 @@ Khi một người còn đúng một lá sau lượt đánh, server công khai *
 
 Không có tới trắng, thối hoặc cóng trong v1. Ván thường kết thúc ngay khi một người đánh hết bài.
 
-## Chip local, mức giữ và bảng thanh toán
+## Coin local, mức giữ và bảng thanh toán
 
-Cược cơ bản `s = 20 chip`. Chip không có giá trị ngoài máy chủ local. Trước khi chia, server giữ `maxLoss(n) = 2 × s × (n − 1)` của từng người trong một transaction, với `n` là số người tại bàn. Thiếu chip ở bất kỳ ghế nào sẽ không ai bị giữ chip.
+Cược cơ bản `s` do chủ bàn chọn khi tạo phòng, mặc định 20 coin; nhận số nguyên dương hoặc dạng `10k`, `10tr`. Coin không có giá trị ngoài máy chủ local. Trước khi chia, server giữ `maxLoss(n) = 2 × s × (n − 1)` của từng người trong một transaction, với `n` là số người tại bàn. Thiếu coin ở bất kỳ ghế nào sẽ không ai bị giữ coin.
 
-| Kết quả | Người trả | Người nhận | Chuyển chip |
+| Kết quả | Người trả | Người nhận | Chuyển coin |
 |---|---|---|---:|
 | Ván thường | Mỗi người thua | Người đánh hết bài | `s` mỗi người |
 | Chặn Báo một | Người đã Báo một | Người chặn/đánh hết bài | thêm `s` |
@@ -46,5 +46,9 @@ Ví dụ bàn 5 người: `maxLoss = 2 × 20 × 4 = 160`. Báo Sâm thất bại
 ## Khôi phục, hủy và bí mật
 
 - Client chỉ nhận 10 lá của chính mình. Người khác chỉ thấy số lá, bài trên bàn, Báo một và người Báo Sâm đã được chốt. Không có bài đối thủ trong snapshot, nhật ký hoặc kết quả đang chơi.
-- Reload/reconnect giữ bài, lượt, trạng thái Báo Sâm, khoản giữ và action ID. Ván đang hoạt động tạm dừng khi có ghế mất kết nối.
-- Chủ bàn chỉ được hủy trước lá đánh đầu; server hoàn toàn bộ khoản giữ bằng giao dịch có sổ cái. Rời giữa ván chỉ đánh dấu rời sau khi chốt. Phòng hết hạn khi mọi người mất kết nối sẽ hoàn khoản giữ, không tự quyết toán một ván dang dở.
+- Reload/reconnect giữ bài, lượt, trạng thái Báo Sâm, khoản giữ, action ID và deadline reconnect tuyệt đối. Bàn chờ ghế mất kết nối tối đa 120 giây; restart lặp lại không gia hạn thời điểm hết hạn.
+- Hết grace, ván tiếp tục và server tự xử lý nước hợp lệ khi người vắng đến lượt. Settlement vẫn theo luật; disconnect không hủy ván hoặc tự hoàn khoản giữ. Chủ bàn chỉ được hủy trước lá đánh đầu; rời giữa ván chỉ đặt lịch rời sau settlement.
+
+Mỗi lượt đánh có 30 giây theo đồng hồ server; cửa sổ Báo Sâm vẫn giữ hạn tuyệt đối 60 giây, kể cả khi có người mất kết nối. Trong grace, đồng hồ lượt giữ phần còn lại; khi grace hết, lượt của ghế vắng được tự xử lý ngay. Hết giờ tự bỏ khi chặn hoặc đánh một lá hợp lệ khi dẫn. Phòng legacy trước reconnect policy 2 vẫn dùng quy tắc hết hạn 12 giờ để hoàn khoản giữ; bàn policy 2 không bị hủy do disconnect.
+
+**Chia ván tiếp** giữ coin lại và chia ngay trên cùng bàn, không yêu cầu sẵn sàng lại.

@@ -1,0 +1,26 @@
+.reconnect-lifecycle-banner {
+  position: sticky;
+  top: 0;
+  z-index: 40;
+  display: grid;
+  gap: 0.3rem;
+  padding: 0.7rem 1rem;
+  color: #f9f4e8;
+  background: #5b3719;
+  border-bottom: 2px solid #e9b856;
+  box-shadow: 0 5px 18px #1118;
+  font-size: 0.95rem;
+  line-height: 1.4;
+}
+
+.reconnect-lifecycle-banner[hidden] { display: none; }
+.reconnect-lifecycle-banner p { margin: 0; }
+.reconnect-lifecycle-banner strong { font-size: 1rem; }
+.reconnect-lifecycle-banner + * { scroll-margin-top: 1rem; }
+
+.uno-leave-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 0.5rem; }
+
+@media (max-width: 620px) {
+  .reconnect-lifecycle-banner { padding: 0.65rem 0.8rem; font-size: 0.88rem; }
+  .uno-leave-actions { flex-direction: column; }
+}

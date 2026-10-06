@@ -7,33 +7,45 @@
   <title>Tiến lên miền Nam · Chill &amp; Thrill</title>
   <link rel="stylesheet" href="/css/fonts.css">
   <link rel="stylesheet" href="/css/tien-len.css">
+  <link rel="icon" type="image/webp" href="/assets/game/logo.webp">
+  <link rel="apple-touch-icon" href="/assets/game/logo.webp">
+  <link rel="stylesheet" href="/css/game-art.css">
+  <link rel="stylesheet" href="/css/table-shell.css">
+  <link rel="stylesheet" href="/css/table-preferences.css">
+  <link rel="stylesheet" href="/css/preflight.css">
+  <link rel="stylesheet" href="/css/storage-status.css">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Chill &amp; Thrill">
+  <link rel="stylesheet" href="/css/shared-ui.css">
+  <link rel="stylesheet" href="/css/context-help.css">
 </head>
 <body>
   <div class="tl-shell">
-    <header class="tl-brand"><a href="/" aria-label="Về Chill and Thrill">CHILL &amp; THRILL</a><span><a href="/profile">Hồ sơ</a> · TIẾN LÊN</span></header>
+    <header class="tl-brand"><a href="/" class="asset-brand-link" aria-label="Về Chill &amp; Thrill"><img class="brand-art" src="/assets/game/logo.webp" alt="Chill &amp; Thrill" width="640" height="383"></a><span><a href="/profile">Hồ sơ</a> · TIẾN LÊN</span></header>
     <p id="notice" class="notice" role="status" aria-live="polite"></p>
     <main>
       <section id="home-view" class="view card">
         <p class="eyebrow">KỊCH TÍNH · 2–4 NGƯỜI</p>
         <h1>Tiến lên miền Nam</h1>
-        <p class="lead">Bản local v1 · 13 lá/người · cược cố định 100 chip. Người thắng nhận toàn bộ pot; không có phạt thối, cóng hoặc đền.</p>
+        <p class="lead">13 lá/người. Người thắng nhận toàn bộ pot; không có phạt thối, cóng hoặc đền.</p>
         <label>Tên của bạn<input id="name" maxlength="18" autocomplete="nickname" placeholder="Biệt danh"></label>
         <label>Avatar<select id="avatar"><option>🕶️</option><option>🥷</option><option>💻</option><option>🔓</option><option>🎲</option><option>🏎️</option></select></label>
-        <button id="create" class="primary">Tạo bàn · giữ tối đa 100 chip</button>
+        <button id="create" class="primary">Tạo bàn · chọn mức cược</button>
         <div class="or">hoặc vào bàn có sẵn</div>
-        <div class="join-row"><input id="room-code" maxlength="4" autocomplete="off" placeholder="MÃ BÀN"><button id="join">Vào bàn</button></div>
-        <p class="small"><a href="/docs/rules/tien-len.md" target="_blank">Đọc luật local v1 và bảng thanh toán</a></p>
+        <div class="join-row"><input id="room-code" inputmode="text" autocapitalize="characters" aria-label="Mã phòng 4 ký tự" maxlength="4" autocomplete="off" placeholder="MÃ BÀN"><button id="join">Vào bàn</button></div>
+        <p class="small"><a href="/docs/rules/tien-len.md" target="_blank">Đọc luật  và cách tính điểm</a></p>
       </section>
 
       <section id="room-view" class="view card" hidden>
-        <p class="eyebrow">BÀN TIẾN LÊN · CƯỢC CỐ ĐỊNH 100 CHIP</p><h1 id="room-title">----</h1>
+        <p class="eyebrow">BÀN TIẾN LÊN · CƯỢC TỪ MÁY CHỦ</p><h1 id="room-title">----</h1>
         <div class="share"><img id="qr" alt="Mã QR vào bàn Tiến lên"><div><p>Chia sẻ mã hoặc quét QR trong cùng Wi‑Fi.</p><button id="copy-code">Sao chép mã</button></div></div>
         <div id="room-players" class="player-grid"></div><p id="room-status" class="small"></p>
-        <div class="button-row"><button id="ready" class="primary">Sẵn sàng</button><button id="start" hidden>Bắt đầu · giữ 100 chip/người</button><button id="leave">Rời bàn</button></div>
+        <div class="button-row"><button id="ready" class="primary">Sẵn sàng</button><button id="start" hidden>Bắt đầu</button><button id="leave">Rời bàn</button></div>
       </section>
 
       <section id="game-view" class="view" hidden>
-        <div class="game-header card"><div><p class="eyebrow">BÀN <span id="game-room"></span> · POT <span id="pot">0</span> CHIP</p><h1>Tiến lên miền Nam</h1></div><button id="game-leave">Rời sau ván</button></div>
+        <div class="game-header card"><div><p class="eyebrow">BÀN <span id="game-room"></span> · POT <span id="pot">0</span> <span data-game-currency>—</span></p><h1><img class="resource-icon" data-game-currency-icon src="/assets/game/coin.webp" alt="" width="24" height="24"> Tiến lên miền Nam</h1><p class="small" data-economy-summary></p></div><button id="game-leave">Rời sau ván</button></div>
         <div id="phase-banner" class="phase-banner" role="status"></div>
         <section id="players" class="player-grid game-players"></section>
         <section class="table card"><div><p class="eyebrow">BÀI TRÊN BÀN</p><div id="table-cards" class="table-cards"></div><p id="table-combo" class="small"></p></div></section>
@@ -44,8 +56,27 @@
       </section>
     </main>
   </div>
+  <script src="/js/game-art.js"></script>
+  <script src="/js/game-values.js"></script>
+  <script src="/js/mobile-ui.js"></script>
   <script src="/socket.io/socket.io.js"></script>
+  <script src="/js/tien-len-rules.js"></script>
+  <script src="/js/hand-interaction.js"></script>
+  <script src="/js/table-preferences.js"></script>
   <script src="/js/tien-len.js"></script>
-<script src="/js/game-session.js"></script>
+<script src="/js/room-access.js"></script>
+  <script src="/js/room-create.js"></script>
+  <script src="/js/game-session.js"></script>
+  <script src="/js/room-shell.js"></script>
+  <script src="/js/table-shell.js"></script>
+  <script src="/js/table-flow.js"></script>
+  <script src="/js/turn-clock.js"></script>
+  <script src="/js/tutorial-content.js"></script>
+  <script src="/js/context-help.js"></script>
+  <script src="/js/context-help-ui.js"></script>
+  <script src="/js/storage-status.js"></script>
+  <script src="/js/storage-warning.js"></script>
+  <script src="/js/preflight.js"></script>
+  <script src="/js/preflight-mount.js"></script>
 </body>
 </html>

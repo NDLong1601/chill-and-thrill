@@ -31,7 +31,7 @@ test('Poker starts from wallet buy-ins, keeps hole cards private, runs all-in bo
   revision = guest.state.revision; guest.emit('set_ready', { roomCode: created.roomCode, ready: true }); await waitState(guest, state => state.revision > revision);
   await waitState(host, state => state.players.every(player => player.ready)); host.emit('start_game', { roomCode: created.roomCode });
   const started = await waitState(host, state => state.phase === 'HAND' && state.street === 'PREFLOP'); const guestState = await waitState(guest, state => state.phase === 'HAND');
-  assert.equal(started.myHoleCards.length, 2); assert.equal(JSON.stringify(started).includes(guestState.myHoleCards[0].id), false);
+  assert.equal(started.myHoleCards.length, 2); assert.equal(JSON.stringify(started).includes(JSON.stringify(guestState.myHoleCards[0].id)), false);
   const first = started.currentPlayerId === started.myId ? host : guest, second = first === host ? guest : host;
   await act(first, 'all_in');
   await waitState(second, state => state.currentPlayerId === state.myId);

@@ -52,7 +52,7 @@ test('Poker keeps folded contribution in the pot but removes fold player eligibi
 test('Poker applies the no-limit short all-in reopening rule cumulatively', () => {
   const manager = new PokerManager({ sockets: { sockets: new Map() } }, { profileStore: { publicProfile: () => null } });
   const room = { code: 'TEST', phase: 'HAND', players: [], currentBet: 100, lastFullRaise: 50, currentPlayerId: 'b', buttonPlayerId: 'a', street: 'PREFLOP', community: [], deck: [], log: [], revision: 0, actionIds: {} };
-  const player = (id, stack, roundBet, lastActionBet) => ({ id, name: id, socketId: id, inHand: true, folded: false, allIn: false, stack, roundBet, totalContribution: roundBet, lastActionBet, holeCards: [] });
+  const player = (id, stack, roundBet, lastActionBet) => ({ id, name: id, socketId: id, connected: true, inHand: true, folded: false, allIn: false, stack, roundBet, totalContribution: roundBet, lastActionBet, holeCards: [] });
   const a = player('a', 400, 100, 100), b = player('b', 30, 100, null), c = player('c', 60, 100, null); room.players = [a, b, c];
   const socket = id => ({ id, emit: () => {} });
   assert.equal(manager.bettingAction(socket('b'), room, b, { action: 'all_in' }), true);

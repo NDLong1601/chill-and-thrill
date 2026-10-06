@@ -10,7 +10,7 @@ async function main() {
   try {
     browser = await chromium.launch({ channel: process.env.GANG_BROWSER_CHANNEL || 'chrome', headless: true });
     const hostContext = await browser.newContext({ viewport: { width: 1280, height: 850 } });
-    const guestContext = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
+    const guestContext = await browser.newContext({ viewport: { width: 844, height: 390 }, isMobile: true, hasTouch: true });
     const host = await hostContext.newPage(), guest = await guestContext.newPage();
     for (const page of [host, guest]) { page.setDefaultTimeout(8000); page.on('pageerror', error => errors.push(error.message)); await page.route('**/*', route => new URL(route.request().url()).hostname === '127.0.0.1' ? route.continue() : route.abort()); }
     await host.goto(`${url}/poker`); await host.locator('#name').fill('Chủ Poker'); await host.locator('#create').click(); await host.locator('#room-view:not([hidden])').waitFor(); const code = await host.locator('#room-title').innerText();

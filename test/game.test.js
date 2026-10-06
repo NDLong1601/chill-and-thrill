@@ -193,10 +193,12 @@ test('strict chat blocks hints and emotes during heist but allows neutral preset
   f.gm.returnToLobby(f.sockets[0], f.code); f.gm.setChatMode(f.sockets[0], f.code, false); start(f);
   f.gm.sendChat(f.sockets[0], f.code, 'Chào cả đội'); assert.equal(f.room.chatLog.length, 2);
 });
-test('leave and removing players are forbidden during heist, returning to lobby preserves history', t => {
+test('leave during heist queues the player until settlement, returning to lobby preserves history', t => {
   const f = fixture(t); start(f); f.gm.leaveRoom(f.sockets[1], f.code); assert.equal(f.room.players.length, 3);
-  finish(f); f.gm.returnToLobby(f.sockets[0], f.code); assert.equal(f.room.history.length, 1); assert.equal(f.room.players.every(p => !p.ready), true);
-  f.gm.removePlayer(f.sockets[0], f.code, f.room.players[2].id); assert.equal(f.room.players.length, 2);
+  assert.equal(f.room.players[1].leaveAfterHand, true);
+  finish(f); assert.equal(f.room.players.length, 2); assert.ok(f.sockets[1].events.some(event => event.event === 'room_left'));
+  f.gm.returnToLobby(f.sockets[0], f.code); assert.equal(f.room.history.length, 1); assert.equal(f.room.players.every(p => !p.ready), true);
+  f.gm.removePlayer(f.sockets[0], f.code, f.room.players[1].id); assert.equal(f.room.players.length, 1);
 });
 test('card deck progress survives replay and returning to lobby', t => {
   const f = fixture(t, 3, 'ADVANCED'); start(f);

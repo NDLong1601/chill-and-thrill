@@ -7,11 +7,20 @@
   <title>Hồ sơ &amp; nhiệm vụ · Chill &amp; Thrill</title>
   <link rel="stylesheet" href="/css/fonts.css">
   <link rel="stylesheet" href="/css/profile.css">
+  <link rel="icon" type="image/webp" href="/assets/game/logo.webp">
+  <link rel="apple-touch-icon" href="/assets/game/logo.webp">
+  <link rel="stylesheet" href="/css/game-art.css">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Chill &amp; Thrill">
+  <link rel="stylesheet" href="/css/shared-ui.css">
+  <link rel="stylesheet" href="/css/storage-status.css">
 </head>
 <body>
   <main class="shell">
-    <header class="top"><a href="/">← Chill &amp; Thrill</a><a href="/uno">UNO</a></header>
+    <header class="top"><a href="/" class="asset-brand-link" aria-label="Về Chill &amp; Thrill"><img class="brand-art" src="/assets/game/logo.webp" alt="Chill &amp; Thrill" width="640" height="383"></a><a href="/uno">UNO</a></header>
     <p id="notice" class="notice" role="status" aria-live="polite"></p>
+    <aside id="storage-status" class="storage-status" role="status" aria-live="polite" hidden></aside>
 
     <section id="guest" class="card narrow">
       <p class="eyebrow">HỒ SƠ LOCAL</p>
@@ -29,14 +38,20 @@
 
     <section id="profile" hidden>
       <div class="card hero"><div><p class="eyebrow">HỒ SƠ LOCAL</p><h1><span id="avatar"></span> <span id="display-name"></span></h1><p class="sub">Dữ liệu chỉ tồn tại trên máy chủ LAN này.</p></div><a class="button-link" href="/">Chơi game</a></div>
-      <section class="balances"><article class="card balance"><span>Chip khả dụng</span><strong id="available">0</strong></article><article class="card balance"><span>Đang giữ</span><strong id="reserved">0</strong></article></section>
-      <section class="card"><div class="section-head"><div><p class="eyebrow">NHIỆM VỤ HÔM NAY</p><h2>Thưởng theo kết quả ván đã lưu</h2></div><span id="period" class="pill"></span></div><div id="missions" class="mission-list"></div><p class="fine">Thưởng chưa nhận hết hạn khi ngày mới bắt đầu theo giờ Việt Nam. Hướng dẫn chỉ mở khi có luồng được máy chủ xác minh.</p></section>
+      <section class="balances"><article class="card balance"><span><img class="resource-icon" src="/assets/game/chip.webp" alt="" width="24" height="24"> Chip khả dụng</span><strong id="available">0</strong></article><article class="card balance"><span><img class="resource-icon" src="/assets/game/chip.webp" alt="" width="24" height="24"> Đang giữ</span><strong id="reserved">0</strong></article><article class="card balance"><span><img class="resource-icon" src="/assets/game/coin.webp" alt=""> Coin</span><strong data-balance="coin">0</strong><small>Giữ <b data-coin-reserved>0</b> coin</small></article><article class="card balance"><span><img class="resource-icon" src="/assets/game/gem.webp" alt=""> Gem</span><strong data-balance="gem">0</strong></article></section>
+      <form id="wallet-exchange" class="currency-exchange" hidden><p><img class="resource-icon" src="/assets/game/gem.webp" alt=""> <strong data-exchange-rate>1 gem = 10.000.000 coin</strong> · Chip Poker có số dư riêng</p><label>Quy đổi<select name="direction"><option value="coin-to-gem">Coin → gem</option><option value="gem-to-coin">Gem → coin</option></select></label><label>Số gem<input name="gems" type="number" min="1" step="1" value="1" inputmode="numeric" required></label><button type="submit">Quy đổi</button><p data-exchange-message role="status"></p></form>
+      <section class="card"><div class="section-head"><div><p class="eyebrow">NHIỆM VỤ HÔM NAY</p><h2><img class="resource-icon" src="/assets/game/coin.webp" alt="" width="24" height="24"> Thưởng theo kết quả ván đã lưu</h2></div><span id="period" class="pill"></span></div><div id="missions" class="mission-list"></div><p class="fine">Thưởng chưa nhận hết hạn khi ngày mới bắt đầu theo giờ Việt Nam. Hướng dẫn chỉ mở khi có luồng được máy chủ xác minh.</p></section>
       <section class="grid"><article class="card"><p class="eyebrow">ĐỔI TÊN / AVATAR</p><label>Tên hiển thị<input id="edit-name" maxlength="18"></label><label>Avatar<select id="edit-avatar"><option>🕶️</option><option>🥷</option><option>💻</option><option>🔓</option><option>🎲</option><option>🏎️</option></select></label><button id="save-profile">Lưu hồ sơ</button></article>
       <article class="card recovery-card"><p class="eyebrow">KHÔI PHỤC THIẾT BỊ</p><p>Chỉ chia sẻ hai mã dưới đây với thiết bị của chính bạn.</p><label>Mã hồ sơ<output id="profile-id"></output></label><label>Mã khôi phục<output id="recovery-code">Chưa có trên thiết bị này</output></label><p class="fine">Token phiên không hiển thị và không được ghi vào lịch sử chip.</p></article></section>
-      <section class="card"><div class="section-head"><div><p class="eyebrow">LỊCH SỬ CHIP</p><h2>Giao dịch gần đây</h2></div></div><ul id="ledger" class="ledger"></ul></section>
+      <section class="card"><div class="section-head"><div><p class="eyebrow">LỊCH SỬ VÍ</p><h2>Biến động gần đây</h2></div><a class="button-link history-link" href="/history">Tìm lịch sử đầy đủ</a></div><ul id="ledger" class="ledger"></ul></section>
     </section>
   </main>
+  <script src="/js/game-art.js"></script>
+  <script src="/js/game-values.js"></script>
+  <script src="/js/mobile-ui.js"></script>
   <script src="/socket.io/socket.io.js"></script>
+  <script src="/js/currency-wallet.js"></script>
+  <script src="/js/storage-status.js"></script>
   <script src="/js/profile.js"></script>
 </body>
 </html>

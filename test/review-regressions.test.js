@@ -1,4 +1,5 @@
 'use strict';
+function balance(f, id) { return f.store.publicProfile(id).balances[f.manager instanceof PokerManager ? 'chip' : 'coin']; }
 
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
@@ -65,9 +66,16 @@ test('schema v1 upgrades in place without changing existing identity or chip res
   t.after(() => { store.close(); removeTemp(directory); });
   const identity = store.createProfile({ displayName: 'Existing player' });
   const held = store.reserveMany({ reservations: [{ profileId: identity.profile.id, amount: 200 }], operationKey: 'existing-hold', roomCode: 'ABCD', matchId: 'old-match' });
-  store.db.exec('DROP TABLE game_snapshots; DELETE FROM schema_migrations WHERE version = 2;');
+  store.db.exec(`DROP TABLE game_snapshots;
+    DROP TABLE tutorial_verifications;
+    DELETE FROM wallet_ledger WHERE currency = 'coin';
+    ALTER TABLE wallets DROP COLUMN coin_available; ALTER TABLE wallets DROP COLUMN coin_reserved;
+    ALTER TABLE wallets DROP COLUMN gem_available; ALTER TABLE wallets DROP COLUMN gem_reserved;
+    ALTER TABLE reservations DROP COLUMN currency; ALTER TABLE wallet_ledger DROP COLUMN currency;
+    DELETE FROM schema_migrations WHERE version >= 2;`);
   store.close(); store = new ProfileStore({ databaseFile });
-  assert.equal(store.db.prepare('SELECT MAX(version) AS version FROM schema_migrations').get().version, 2);
+  assert.equal(store.db.prepare('SELECT MAX(version) AS version FROM schema_migrations').get().version, 4);
+  assert.deepEqual(store.publicProfile(identity.profile.id).balances.coin, { available: 1000, reserved: 0 });
   assert.equal(store.authenticate(identity.sessionToken).id, identity.profile.id);
   assert.deepEqual(store.publicProfile(identity.profile.id).wallet, { available: 800, reserved: 200 });
   assert.equal(store.db.prepare('SELECT status FROM reservations WHERE id = ?').get(held.held[0].reservationId).status, 'HELD');
@@ -86,9 +94,9 @@ for (const finalEat of [false, true]) test(`Phỏm preserves mandatory eaten mel
   assert.equal(f.room.phase, 'DISCARD');
   assert.deepEqual(f.manager.buildStateFor(f.room, eater.id).myDiscardableCardIds, ['9D']);
   for (const id of ['3H', '4H', '5H']) {
-    const before = JSON.stringify(f.room), wallet = f.store.publicProfile(f.profiles[1].id).wallet;
+    const before = JSON.stringify(f.room), wallet = balance(f, f.profiles[1].id);
     action(f, 1, 'discard', { cardId: id });
-    assert.equal(JSON.stringify(f.room), before); assert.deepEqual(f.store.publicProfile(f.profiles[1].id).wallet, wallet);
+    assert.equal(JSON.stringify(f.room), before); assert.deepEqual(balance(f, f.profiles[1].id), wallet);
   }
   action(f, 1, 'discard', { cardId: '9D' });
   assert.equal(eater.hand.length, 3);
@@ -97,7 +105,7 @@ for (const finalEat of [false, true]) test(`Phỏm preserves mandatory eaten mel
     action(f, 0, 'lay_down', { melds: [], sends: [] });
     action(f, 1, 'lay_down', { melds: [['3H', '4H', '5H']], sends: [] });
     assert.equal(f.room.phase, 'RESULT');
-    assert.ok(f.profiles.every(profile => f.store.publicProfile(profile.id).wallet.reserved === 0));
+    assert.ok(f.profiles.every(profile => balance(f, profile.id).reserved === 0));
   }
 });
 
@@ -105,25 +113,26 @@ for (const [gameId, Manager] of [['tien-len', TienLenManager], ['sam-loc', SamLo
   test(`${gameId} refunds expired snapshots once across repeated restarts`, t => {
     const f = fixture(t, Manager); start(f);
     assert.ok(f.room.reservations.length === 2);
+    delete f.room.reconnectPolicyVersion; // Exercise the published legacy expiry path, not policy 2.
     f.room.updatedAt = Date.now() - 13 * 3600000; f.manager.close();
     const stale = fs.readFileSync(f.options.storageFile, 'utf8');
     f.manager = new Manager(fakeIo(), f.options);
     assert.equal(f.manager.rooms.has(f.room.code), false);
-    assert.deepEqual(f.profiles.map(p => f.store.publicProfile(p.id).wallet), [{ available: 1000, reserved: 0 }, { available: 1000, reserved: 0 }]);
+    assert.deepEqual(f.profiles.map(p => balance(f, p.id)), [{ available: 1000, reserved: 0 }, { available: 1000, reserved: 0 }]);
     f.manager.close(); fs.writeFileSync(f.options.storageFile, stale);
     f.manager = new Manager(fakeIo(), f.options);
     assert.equal(f.manager.rooms.has(f.room.code), false);
     assert.equal(f.store.db.prepare("SELECT COUNT(*) AS n FROM wallet_ledger WHERE source = 'release'").get().n, 2);
   });
   test(`${gameId} retains reservations and source snapshot when expiry cannot commit`, t => {
-    const f = fixture(t, Manager); start(f); f.room.updatedAt = Date.now() - 13 * 3600000; f.manager.close();
+    const f = fixture(t, Manager); start(f); delete f.room.reconnectPolicyVersion; f.room.updatedAt = Date.now() - 13 * 3600000; f.manager.close();
     const original = f.store.expireFixedRoom.bind(f.store), stale = fs.readFileSync(f.options.storageFile, 'utf8');
     f.store.expireFixedRoom = () => { throw new Error('injected expiry failure'); };
     f.manager = new Manager(fakeIo(), f.options); assert.equal(f.manager.storageError, true); f.manager.close();
     assert.equal(fs.readFileSync(f.options.storageFile, 'utf8'), stale);
-    assert.ok(f.profiles.every(p => f.store.publicProfile(p.id).wallet.reserved > 0));
+    assert.ok(f.profiles.every(p => balance(f, p.id).reserved > 0));
     f.store.expireFixedRoom = original; f.manager = new Manager(fakeIo(), f.options);
-    assert.ok(f.profiles.every(p => f.store.publicProfile(p.id).wallet.reserved === 0));
+    assert.ok(f.profiles.every(p => balance(f, p.id).reserved === 0));
   });
 }
 
@@ -132,12 +141,13 @@ for (const fromLoad of [false, true]) test(`Poker expiry refunds every wager bef
   const current = f.room.players.findIndex(p => p.id === f.room.currentPlayerId);
   action(f, current, 'all_in'); assert.equal(f.room.phase, 'HAND');
   assert.ok(f.room.players.reduce((sum, p) => sum + p.totalContribution, 0) > 15);
+  delete f.room.reconnectPolicyVersion; // Keep this compatibility test on the legacy 12-hour refund path.
   f.room.players.forEach(p => { p.connected = false; p.socketId = null; p.disconnectedAt = Date.now() - 13 * 3600000; });
   f.room.updatedAt = Date.now() - 13 * 3600000;
   f.manager.persistRoom(f.room); f.manager.flush(); const stale = fs.readFileSync(f.options.storageFile, 'utf8');
   if (fromLoad) { f.manager.close(); f.manager = new PokerManager(fakeIo(), f.options); } else f.manager.cleanup();
   assert.equal(f.manager.rooms.has(f.room.code), false);
-  assert.deepEqual(f.profiles.map(p => f.store.publicProfile(p.id).wallet), [{ available: 1000, reserved: 0 }, { available: 1000, reserved: 0 }]);
+  assert.deepEqual(f.profiles.map(p => balance(f, p.id)), [{ available: 1000, reserved: 0 }, { available: 1000, reserved: 0 }]);
   f.manager.close(); fs.writeFileSync(f.options.storageFile, stale); f.manager = new PokerManager(fakeIo(), f.options);
   assert.equal(f.manager.rooms.has(f.room.code), false, 'committed tombstone prevents stale JSON from resurrecting a cash-out');
   assert.equal(f.store.db.prepare("SELECT COUNT(*) AS n FROM wallet_ledger WHERE source = 'poker_cashout'").get().n, 2);
@@ -148,7 +158,7 @@ test('Poker expiry after a settled hand keeps winnings instead of refunding the 
   action(f, f.room.players.findIndex(p => p.id === f.room.currentPlayerId), 'fold'); assert.equal(f.room.phase, 'RESULT');
   const expected = f.room.players.map((p, n) => ({ available: 800 + p.stack, reserved: 0 }));
   f.room.players.forEach(p => { p.connected = false; p.disconnectedAt = Date.now() - 13 * 3600000; }); f.room.updatedAt = Date.now() - 13 * 3600000;
-  f.manager.cleanup(); assert.deepEqual(f.profiles.map(p => f.store.publicProfile(p.id).wallet), expected);
+  f.manager.cleanup(); assert.deepEqual(f.profiles.map(p => balance(f, p.id)), expected);
   assert.equal(expected.reduce((sum, wallet) => sum + wallet.available, 0), 2000);
 });
 
@@ -157,7 +167,7 @@ test('Poker rolls back both wallet and memory if the recovery snapshot cannot co
   f.store.saveGameSnapshot = () => { throw new Error('injected snapshot failure'); };
   action(f, 0, 'buy_in', { amount: 200 });
   f.store.saveGameSnapshot = original;
-  assert.deepEqual(f.store.publicProfile(f.profiles[0].id).wallet, { available: 1000, reserved: 0 });
+  assert.deepEqual(balance(f, f.profiles[0].id), { available: 1000, reserved: 0 });
   assert.equal(f.manager.rooms.get(f.room.code).players[0].stack, 0);
   assert.equal(f.store.db.prepare("SELECT COUNT(*) AS n FROM reservations WHERE status = 'HELD'").get().n, 0);
   assert.ok(f.sockets[0].events.some(event => event.event === 'game_error' && /snapshot failure/.test(event.payload.message)));
@@ -172,10 +182,10 @@ test('Poker expiry rolls back every cash-out when a later seat fails', t => {
   f.store.settlePokerSeat = data => { if (++attempts === 2) throw new Error('injected second cash-out failure'); return original(data); };
   assert.throws(() => f.manager.expireRoom(f.room), /second cash-out/);
   assert.equal(JSON.stringify(f.manager.rooms.get(f.room.code)), before);
-  assert.ok(f.profiles.every(p => f.store.publicProfile(p.id).wallet.reserved === 200));
+  assert.ok(f.profiles.every(p => balance(f, p.id).reserved === 200));
   assert.equal(f.store.db.prepare("SELECT COUNT(*) AS n FROM wallet_ledger WHERE source = 'poker_cashout'").get().n, 0);
   f.store.settlePokerSeat = original; f.manager.expireRoom(f.room);
-  assert.ok(f.profiles.every(p => f.store.publicProfile(p.id).wallet.available === 1000));
+  assert.ok(f.profiles.every(p => balance(f, p.id).available === 1000));
 });
 
 for (const crash of ['before_snapshot', 'after_snapshot', 'after_commit']) test(`Poker child-process crash ${crash} preserves the wallet/stack boundary`, t => {
@@ -235,6 +245,53 @@ test('one profile can leave and rejoin every game without duplicate room members
   }
 });
 
+for (const variant of ['classic-local-v1', 'classic-108-v1']) for (const disconnected of [false, true]) {
+  test(`UNO ${variant} leaves ${disconnected ? 'a disconnected' : 'an active'} round and immediately creates another game`, t => {
+    const io = fakeIo(), gm = new MultiGameManager(io); t.after(() => gm.close());
+    const host = socket(io, 'host'), guest = socket(io, 'guest'), stranger = socket(io, 'stranger');
+    const created = gm.createRoom(host, 'Host', 'ADVANCED', '🎲', 'uno', { variant });
+    const joined = gm.joinRoom(guest, created.roomCode, 'Guest', '🎲');
+    assert.equal(joined.error, undefined);
+    gm.setReady(host, created.roomCode, true); gm.setReady(guest, created.roomCode, true); gm.startGame(host, created.roomCode);
+    const manager = gm.managerForCode(created.roomCode), room = manager.rooms.get(created.roomCode);
+    const matchId = room.matchId;
+    // Arm a deadline so leaving also has to clear pending reactions.
+    if (variant === 'classic-local-v1') {
+      room.uno.unoWindow = { playerId: host.data.profile.id, deadlineAt: Date.now() + 60000 };
+      gm.roomService.adapterFor('uno').schedule(room);
+      assert.equal(gm.roomService.adapterFor('uno').timers.has(room.code), true);
+    } else {
+      room.phase = 'WDF_CHALLENGE'; room.pendingWdf = { offenderId: created.playerId, targetId: joined.playerId, deadlineAt: Date.now() + 60000 };
+    }
+    const before = JSON.stringify(room);
+    gm.leaveRoom(stranger, room.code);
+    assert.equal(JSON.stringify(room), before, 'only a member may cancel the round');
+    if (disconnected) gm.handleDisconnect(host);
+    const departing = disconnected ? guest : host;
+    const profileId = departing.data.profile.id;
+    gm.leaveRoom(departing, room.code);
+    assert.equal(room.phase, 'WAITING'); assert.notEqual(room.matchId, matchId);
+    assert.equal(room.players.length, 1); assert.equal(room.players[0].isHost, true); assert.equal(room.players[0].ready, false);
+    assert.equal(manager.playerRoom.has(departing.id), false);
+    assert.ok(departing.events.some(event => event.event === 'room_left'));
+    if (variant === 'classic-local-v1') {
+      assert.equal(room.uno, null); assert.equal(gm.roomService.adapterFor('uno').timers.has(room.code), false);
+    } else {
+      assert.equal(room.pendingWdf, null); assert.equal(room.pendingUno, null); assert.equal(room.paused, false);
+      assert.deepEqual(room.players[0].hand, []);
+    }
+    assert.equal(gm.profiles.db.prepare('SELECT COUNT(*) AS n FROM matches').get().n, 0, 'cancelled rounds grant no match or mission credit');
+    assert.deepEqual(gm.profiles.publicProfile(profileId).wallet, { available: 1000, reserved: 0 });
+    const next = gm.createRoom(departing, 'Same profile', 'ADVANCED', '🎲', 'poker');
+    assert.equal(next.error, undefined); assert.equal(next.profile.id, profileId);
+    assert.ok(next.sessionToken); assert.equal(next.entryPath, '/poker');
+    const oldAction = gm.roomService.handleGameAction(departing, { roomCode: room.code, matchId, expectedRevision: 0, actionId: 'old-action', type: 'draw_card' });
+    assert.equal(oldAction.ok, false);
+    assert.equal(room.phase, 'WAITING');
+    assert.equal(gm.profiles.db.prepare("SELECT status FROM room_members WHERE profile_id = ? AND room_id = ?").get(profileId, `room:uno:${room.code}`).status, 'LEFT');
+  });
+}
+
 test('foreign sockets cannot ready, start, act, leave or request private room state', t => {
   const io = fakeIo(), gm = new MultiGameManager(io); t.after(() => gm.close());
   for (const [gameId, variant] of [['the-gang'], ['uno', 'classic-local-v1'], ['uno', 'classic-108-v1'], ['poker'], ['tien-len'], ['sam-loc'], ['phom'], ['bang']]) {
@@ -284,5 +341,5 @@ for (const [gameId, Manager] of [['tien-len', TienLenManager], ['sam-loc', SamLo
   assert.equal(f.manager.playerRoom.has(f.sockets[1].id), false);
   assert.ok(f.sockets[1].events.some(event => event.event === 'room_left'));
   assert.equal(f.store.db.prepare('SELECT COUNT(*) AS n FROM match_players WHERE match_id = ?').get(f.room.matchId).n, f.profiles.length);
-  assert.equal(f.store.publicProfile(f.profiles[1].id).wallet.reserved, 0);
+  assert.equal(balance(f, f.profiles[1].id).reserved, 0);
 });

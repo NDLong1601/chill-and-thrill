@@ -2,14 +2,26 @@
 <html lang="vi">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#21151f">
   <title>Phỏm · Chill &amp; Thrill</title>
   <link rel="stylesheet" href="/css/tien-len.css">
+  <link rel="icon" type="image/webp" href="/assets/game/logo.webp">
+  <link rel="apple-touch-icon" href="/assets/game/logo.webp">
+  <link rel="stylesheet" href="/css/game-art.css">
+  <link rel="stylesheet" href="/css/table-shell.css">
+  <link rel="stylesheet" href="/css/table-preferences.css">
+  <link rel="stylesheet" href="/css/preflight.css">
+  <link rel="stylesheet" href="/css/storage-status.css">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Chill &amp; Thrill">
+  <link rel="stylesheet" href="/css/shared-ui.css">
+  <link rel="stylesheet" href="/css/context-help.css">
 </head>
 <body>
   <div class="tl-shell">
-    <header class="tl-brand"><a href="/">← CHILL &amp; THRILL</a><span>PHỎM · LOCAL V1</span></header>
+    <header class="tl-brand"><a href="/" class="asset-brand-link" aria-label="Về Chill &amp; Thrill"><img class="brand-art" src="/assets/game/logo.webp" alt="Chill &amp; Thrill" width="640" height="383"></a><span>PHỎM · LOCAL V1</span></header>
     <p id="notice" class="notice" role="status"></p>
     <main>
       <section id="home-view" class="view card">
@@ -17,24 +29,24 @@
         <p class="lead">Bốc hoặc ăn, đánh, hạ phỏm và gửi bài. Toàn bộ tiền ăn/ù/đền được chốt một lần trên server.</p>
         <label>Tên của bạn<input id="name" maxlength="18" autocomplete="nickname" placeholder="Biệt danh"></label>
         <label>Avatar<select id="avatar"><option>🕶️</option><option>🥷</option><option>💻</option><option>🔓</option><option>🎲</option><option>🏎️</option></select></label>
-        <button id="create" class="primary">Tạo bàn · đơn vị 10 chip</button>
+        <button id="create" class="primary">Tạo bàn · chọn mức cược</button>
         <div class="or">hoặc vào bàn có sẵn</div>
-        <div class="join-row"><input id="room-code" maxlength="4" autocomplete="off" placeholder="MÃ BÀN"><button id="join">Vào bàn</button></div>
-        <p class="small"><a href="/docs/rules/phom.md" target="_blank">Đọc luật Phỏm local v1 và bảng thanh toán</a></p>
+        <div class="join-row"><input id="room-code" inputmode="text" autocapitalize="characters" aria-label="Mã phòng 4 ký tự" maxlength="4" autocomplete="off" placeholder="MÃ BÀN"><button id="join">Vào bàn</button></div>
+        <p class="small"><a href="/docs/rules/phom.md" target="_blank">Đọc luật Phỏm  và cách tính điểm</a></p>
       </section>
 
       <section id="room-view" class="view card" hidden>
-        <p class="eyebrow">BÀN PHỎM · ĐƠN VỊ 10 CHIP</p><h1 id="room-title">----</h1>
+        <p class="eyebrow">BÀN PHỎM · CƯỢC TỪ MÁY CHỦ</p><h1 id="room-title">----</h1>
         <div class="share"><img id="qr" alt="Mã QR vào bàn Phỏm"><div><p>Chia sẻ mã hoặc quét QR trong cùng Wi‑Fi.</p><button id="copy-code">Sao chép mã</button></div></div>
         <div id="room-players" class="player-grid"></div><p id="room-status" class="small"></p>
         <div class="button-row"><button id="ready" class="primary">Sẵn sàng</button><button id="start" hidden>Bắt đầu</button><button id="leave">Rời bàn</button></div>
       </section>
 
       <section id="game-view" class="view" hidden>
-        <div class="game-header card"><div><p class="eyebrow">BÀN <span id="game-room"></span> · GIỮ TỐI ĐA <span id="max-loss">0</span> CHIP</p><h1>Phỏm</h1></div><button id="game-leave">Rời sau ván</button></div>
+        <div class="game-header card"><div><p class="eyebrow">BÀN <span id="game-room"></span> · GIỮ TỐI ĐA <span id="max-loss">0</span> <span data-game-currency>—</span></p><h1><img class="resource-icon" data-game-currency-icon src="/assets/game/coin.webp" alt="" width="24" height="24"> Phỏm</h1><p class="small" data-economy-summary></p></div><button id="game-leave">Rời sau ván</button></div>
         <div id="phase-banner" class="phase-banner" role="status"></div>
         <section id="players" class="player-grid game-players"></section>
-        <section class="table card"><div><p class="eyebrow">NỌC CÒN <span id="stock-count">0</span> · LÁ VỪA ĐÁNH</p><div id="table-cards" class="table-cards"></div><p id="table-info" class="small"></p></div></section>
+        <section class="table card asset-stock"><img class="asset-stock-back" src="/assets/game/cards/back.webp" alt="Nọc bài úp" width="58" height="84"><div><p class="eyebrow">NỌC CÒN <span id="stock-count">0</span> · LÁ VỪA ĐÁNH</p><div id="table-cards" class="table-cards"></div><p id="table-info" class="small"></p></div></section>
         <section id="public-melds" class="card log"><h2>Phỏm đã hạ</h2><div id="meld-list" class="small">Chưa ai hạ bài.</div></section>
         <section id="actions" class="actions card"></section>
         <section class="hand card"><div class="hand-top"><h2>Bài của bạn <span id="hand-count"></span></h2><button id="sort" class="small-button">Sắp theo chất</button></div><p id="selection-info" class="small">Chọn lá để thao tác.</p><div id="hand" class="hand-cards"></div></section>
@@ -44,8 +56,26 @@
       </section>
     </main>
   </div>
+  <script src="/js/game-art.js"></script>
+  <script src="/js/game-values.js"></script>
+  <script src="/js/mobile-ui.js"></script>
   <script src="/socket.io/socket.io.js"></script>
+  <script src="/js/hand-interaction.js"></script>
+  <script src="/js/table-preferences.js"></script>
   <script src="/js/phom.js"></script>
-<script src="/js/game-session.js"></script>
+<script src="/js/room-access.js"></script>
+  <script src="/js/room-create.js"></script>
+  <script src="/js/game-session.js"></script>
+  <script src="/js/room-shell.js"></script>
+  <script src="/js/table-shell.js"></script>
+  <script src="/js/table-flow.js"></script>
+  <script src="/js/turn-clock.js"></script>
+  <script src="/js/tutorial-content.js"></script>
+  <script src="/js/context-help.js"></script>
+  <script src="/js/context-help-ui.js"></script>
+  <script src="/js/storage-status.js"></script>
+  <script src="/js/storage-warning.js"></script>
+  <script src="/js/preflight.js"></script>
+  <script src="/js/preflight-mount.js"></script>
 </body>
 </html>

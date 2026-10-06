@@ -39,9 +39,35 @@ test('Tiến lên deck, formations, cuts and white-win priorities use the local 
   const fourTwos = ['S', 'C', 'D', 'H'].map(suit => card('2', suit)); assert.equal(whiteWin(fourTwos).label, 'tứ quý 2');
 });
 
+test('Tiến lên recognizes pairs, triples and fours with their correct cutting rules', () => {
+  const pair = classify([card('2', 'S'), card('2', 'H')]);
+  const triple = classify([card('7', 'S'), card('7', 'C'), card('7', 'D')]);
+  const four = classify(['S', 'C', 'D', 'H'].map(suit => card('8', suit)));
+  assert.equal(pair.kind, 'pair'); assert.equal(triple.kind, 'triple'); assert.equal(four.kind, 'four');
+  assert.equal(canBeat(four, pair), true);
+  assert.equal(canBeat(triple, pair), false);
+  assert.equal(canBeat(classify([card('8', 'S'), card('8', 'H')]), classify([card('7', 'C'), card('7', 'H')])), true);
+});
+
+test('Tiến lên restores a legacy pair label without changing seats, tokens or cards', t => {
+  const f = fixture(t, 2), owner = f.room.players[0];
+  const rank = owner.hand.find(card => owner.hand.filter(other => other.rank === card.rank).length >= 2).rank;
+  const cards = owner.hand.filter(card => card.rank === rank).slice(0, 2);
+  owner.hand = owner.hand.filter(card => !cards.includes(card));
+  f.room.topPlay = { playerId: owner.id, cards, formation: { ...classify(cards), kind: 'triple' } };
+  f.room.playedAny = true; f.room.currentPlayerId = f.room.players[1].id; f.room.leaderId = owner.id;
+  f.manager.storageFile = path.join(f.directory, 'legacy-label.json'); f.manager.close();
+  const restored = new TienLenManager(fakeIo(), { profileStore: f.store, storageFile: f.manager.storageFile });
+  restored.storageFile = null;
+  t.after(() => restored.close());
+  const room = restored.rooms.get(f.room.code);
+  assert.equal(room.topPlay.formation.kind, 'pair'); assert.equal(room.paused, true);
+  assert.deepEqual(room.players.map(player => ({ id: player.id, token: player.token, hand: player.hand })), f.room.players.map(player => ({ id: player.id, token: player.token, hand: player.hand })));
+});
+
 test('Tiến lên keeps opponents private, requires the dealt low card, rejects stale/foreign actions and resets a passed round', t => {
   const f = fixture(t, 3); assert.equal(f.room.phase, 'TURN');
-  const own = f.manager.buildStateFor(f.room, f.room.players[0].id); assert.equal(own.myHand.length, 13); assert.equal(JSON.stringify(own).includes(f.room.players[1].hand[0].id), false);
+  const own = f.manager.buildStateFor(f.room, f.room.players[0].id); assert.equal(own.myHand.length, 13); assert.equal(JSON.stringify(own).includes(JSON.stringify(f.room.players[1].hand[0].id)), false);
   const before = JSON.stringify(f.room); const other = f.room.players.findIndex(player => player.id !== f.room.currentPlayerId); act(f, other, 'pass'); assert.equal(JSON.stringify(f.room), before);
   const starter = f.room.players.findIndex(player => player.id === f.room.currentPlayerId); const starterPlayer = f.room.players[starter]; const wrong = starterPlayer.hand.find(item => item.id !== f.room.initialRequiredCardId); act(f, starter, 'play', { cardIds: [wrong.id] }); assert.equal(starterPlayer.hand.length, 13);
   const low = starterPlayer.hand.find(item => item.id === f.room.initialRequiredCardId); act(f, starter, 'play', { cardIds: [low.id] }); assert.equal(starterPlayer.hand.length, 12);
@@ -63,20 +89,20 @@ test('four fixed reservations settle once as +300/-100 and record a mission matc
   // Make the settlement terminal deterministic without altering reservations.
   const terminalCard = winner.hand[0]; winner.hand = [terminalCard]; f.room.currentPlayerId = winner.id; f.room.initialRequiredCardId = terminalCard.id; f.room.playedAny = false; f.room.topPlay = null;
   act(f, 0, 'play', { cardIds: [terminalCard.id] }); assert.equal(f.room.phase, 'RESULT'); assert.equal(f.room.result.pot, 400);
-  assert.deepEqual(f.profiles.map(profile => f.store.publicProfile(profile.id).wallet.available), [1300, 900, 900, 900]);
+  assert.deepEqual(f.profiles.map(profile => f.store.publicProfile(profile.id).balances.coin.available), [1300, 900, 900, 900]);
   const saved = f.store.profileState(f.profiles[0].id); assert.equal(saved.missions.find(item => item.id === 'daily_match').progress, 1);
-  f.manager.finish(f.room, winner, 'replay'); assert.deepEqual(f.profiles.map(profile => f.store.publicProfile(profile.id).wallet.available), [1300, 900, 900, 900]);
-  act(f, 0, 'play_again'); assert.equal(f.room.phase, 'WAITING'); assert.ok(f.room.players.every(player => !player.ready && player.hand.length === 0));
+  f.manager.finish(f.room, winner, 'replay'); assert.deepEqual(f.profiles.map(profile => f.store.publicProfile(profile.id).balances.coin.available), [1300, 900, 900, 900]);
+  const previousMatch = f.room.matchId; act(f, 0, 'play_again'); assert.equal(f.room.phase, 'TURN'); assert.notEqual(f.room.matchId, previousMatch); assert.ok(f.room.players.every(player => player.hand.length === 13));
 });
 
 test('a missing balance prevents partial holds and host cancellation releases a pre-play hand', t => {
   const f = fixture(t, 2, { noStart: true });
-  const blocking = f.store.reserveMany({ reservations: [{ profileId: f.profiles[1].id, amount: 1000 }], operationKey: 'test-blocking-reservation', roomCode: 'OTHER' });
-  f.manager.startGame(f.sockets[0], f.room.code); assert.equal(f.room.phase, 'WAITING'); assert.equal(f.store.publicProfile(f.profiles[0].id).wallet.available, 1000); assert.equal(f.store.publicProfile(f.profiles[1].id).wallet.available, 0);
+  const blocking = f.store.reserveMany({ reservations: [{ profileId: f.profiles[1].id, amount: 1000 }], currency: 'coin', operationKey: 'test-blocking-reservation', roomCode: 'OTHER' });
+  f.manager.startGame(f.sockets[0], f.room.code); assert.equal(f.room.phase, 'WAITING'); assert.equal(f.store.publicProfile(f.profiles[0].id).balances.coin.available, 1000); assert.equal(f.store.publicProfile(f.profiles[1].id).balances.coin.available, 0);
   f.store.releaseReservations({ reservations: blocking.held, operationKey: 'release-blocking-reservation', roomCode: 'OTHER' });
   f.manager.startGame(f.sockets[0], f.room.code); assert.equal(f.room.phase, 'TURN');
   act(f, 0, 'cancel_before_first_play'); assert.equal(f.room.phase, 'WAITING');
-  assert.deepEqual(f.profiles.map(profile => f.store.publicProfile(profile.id).wallet), [{ available: 1000, reserved: 0 }, { available: 1000, reserved: 0 }]);
+  assert.deepEqual(f.profiles.map(profile => f.store.publicProfile(profile.id).balances.coin), [{ available: 1000, reserved: 0 }, { available: 1000, reserved: 0 }]);
 });
 
 test('a reserved in-progress Tiến lên hand survives restart paused and resumes without duplicating a hold', t => {
@@ -91,5 +117,5 @@ test('a reserved in-progress Tiến lên hand survives restart paused and resume
   const restored = manager.rooms.get(created.roomCode); assert.equal(restored.matchId, matchId); assert.equal(restored.phase, 'TURN'); assert.equal(restored.paused, true);
   manager.resumeRoom(firstBack, created.roomCode, created.sessionToken); assert.equal(manager.rooms.get(created.roomCode).paused, true);
   manager.resumeRoom(secondBack, created.roomCode, joined.sessionToken); assert.equal(manager.rooms.get(created.roomCode).paused, false);
-  assert.deepEqual(profiles.map(item => store.publicProfile(item.profile.id).wallet), [{ available: 900, reserved: 100 }, { available: 900, reserved: 100 }]);
+  assert.deepEqual(profiles.map(item => store.publicProfile(item.profile.id).balances.coin), [{ available: 900, reserved: 100 }, { available: 900, reserved: 100 }]);
 });

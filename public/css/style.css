@@ -63,9 +63,12 @@ button {
   background: none;
 }
 
-input, select {
+input, select, textarea {
   font-family: inherit;
   color: inherit;
+  -webkit-user-select: text !important;
+  user-select: text !important;
+  touch-action: manipulation;
 }
 
 .hidden {

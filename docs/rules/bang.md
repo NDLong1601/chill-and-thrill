@@ -95,8 +95,19 @@ toán ví. Khi kết thúc hợp lệ, toàn bộ người từng tham gia (kể
 được ghi một `matchId` duy nhất cho nhiệm vụ; reload hay gửi lại action không
 ghi thưởng lần hai.
 
+## Reconnect và hành động tự động
+
+Ghế mất kết nối có tối đa 120 giây để khôi phục; deadline được lưu qua restart và không được đặt lại nếu server khởi động lại lần nữa. Bàn tạm dừng trong grace. Hết grace, các ghế còn kết nối tiếp tục chơi và server hành động khi ghế vắng đến lượt hoặc cần phản ứng:
+
+- **BANG!/Gatling:** dùng Missed! hợp lệ trước; nếu không có thì thử Barrel còn lại; nếu không thể chặn thì nhận sát thương.
+- **Indians!/Duel:** bỏ BANG! hợp lệ nếu có, nếu không nhận sát thương.
+- **Jail/Dynamite/Barrel:** chọn lá kiểm tra có lợi nếu có; Lucky Duke chọn trong hai lá đã mở.
+- **General Store/Kit Carlson:** lấy lá mở đầu tiên hoặc hai lá đầu theo thứ tự server.
+- **Mất máu cuối:** dùng Beer hợp lệ nếu cứu được, nếu không thì bị loại theo luật.
+- **Lượt thường:** rút bài nếu đang ở pha rút; khi hết lượt bỏ đúng số bài dư theo thứ tự tay bài.
+
+Chủ bàn có thể chọn **Rời sau ván** giữa ván; ghế được gỡ sau kết quả và phát `room_left`. Disconnect không hủy ván. Bàn policy 2 không bị hủy vì đã mất kết nối quá lâu; quy tắc hết hạn cũ chỉ áp dụng với snapshot legacy chưa có policy này.
+
 ## Giới hạn giao diện local v1
 
-Không có bot, mở rộng hay luật nhà. Đồng hồ tự hết hạn phản ứng không được tự
-động áp dụng: phòng giữ nguyên trạng thái và tạm dừng nếu có người mất kết
-nối, để không server tự quyết định lá kín hay Beer của người chơi.
+Không có bot, mở rộng hay luật nhà. Các hành động tự động là lựa chọn server xác định theo các mục trên; client không gửi cờ tự xử lý, bài đối thủ hoặc trạng thái ẩn.

@@ -4,6 +4,8 @@ const crypto = require('node:crypto');
 const fs = require('node:fs');
 const path = require('node:path');
 const { leaveCompletedSeats } = require('../../platform/completedRoom');
+const { DEFAULT_RECONNECT_GRACE_MS, markDisconnected, markConnected, restoreDisconnectedSeats, isReconnectExpired, reconnectWaiters, isServerActionSocket, serverActionPlayer } = require('../../platform/reconnectGrace');
+const { runStorageOperation } = require('../../platform/storageDiagnostics');
 const {
   CHARACTERS, ROLE_SETS, ROLE_LABELS, CARD_META, createBangDeck, shuffle, isRed, isHeart, isDynamiteHit, cardLabel,
 } = require('./bangDeck');
@@ -11,19 +13,26 @@ const {
 const AVATARS = ['🤠', '🕶️', '🥷', '💻', '🎲', '🏜️'];
 const ACTIVE_PHASES = new Set(['DRAW', 'MAIN', 'DISCARD']);
 const now = () => Date.now();
-const cleanName = value => String(value || '').trim().replace(/\s+/g, ' ').slice(0, 18) || 'Player';
+const cleanName = value => require('../../../public/js/game-values').cleanDisplayName(value) || 'Player';
 const characterById = id => CHARACTERS.find(character => character.id === id);
 const isWeapon = card => Number.isInteger(card?.weaponRange);
 
 class BangManager {
   constructor(io, options = {}) {
     this.io = io; this.rooms = new Map(); this.playerRoom = new Map(); this.storageFile = options.storageFile || null;
-    this.graceMs = options.graceMs ?? 120000; this.codeTaken = typeof options.codeTaken === 'function' ? options.codeTaken : () => false;
+    this.storageDiagnostics = options.storageDiagnostics || options.profileStore?.storageDiagnostics || null;
+    this.graceMs = options.graceMs ?? DEFAULT_RECONNECT_GRACE_MS; this.codeTaken = typeof options.codeTaken === 'function' ? options.codeTaken : () => false;
     this.profileForSocket = typeof options.profileForSocket === 'function' ? options.profileForSocket : () => null;
     this.profileStore = options.profileStore;
     this.onMatchCompleted = typeof options.onMatchCompleted === 'function' ? options.onMatchCompleted : null;
     this.shuffle = typeof options.shuffle === 'function' ? options.shuffle : shuffle;
-    this.load(); this.cleanupTimer = setInterval(() => this.cleanup(), 1000); this.cleanupTimer.unref();
+    this.load();
+    require('../../platform/turnTimeouts').attachGameClock(this, 'bang');
+    const { installGameStateTransactions, wrapGameStateMutations } = require('../../platform/gameStateTransactions');
+    installGameStateTransactions(this, ['bang'], () => 'bang');
+    wrapGameStateMutations(this, this, ['createRoom', 'joinRoom', 'resumeRoom', 'setReady', 'startGame', 'startRound',
+      'action', 'finish', 'playAgain', 'handleDisconnect', 'leaveRoom', 'cleanup', 'broadcast']);
+    this.cleanupTimer = setInterval(() => this.cleanup(), 1000); this.cleanupTimer.unref();
   }
 
   close() { clearInterval(this.cleanupTimer); clearTimeout(this.saveTimer); this.flush(); }
@@ -32,17 +41,24 @@ class BangManager {
   newPlayer(socket, name, avatar, isHost = false) {
     const profile = this.profileForSocket(socket);
     return { id: crypto.randomUUID(), token: crypto.randomBytes(32).toString('hex'), socketId: socket.id, profileId: profile?.id || null,
-      name: profile?.displayName || cleanName(name), avatar: profile?.avatar || (AVATARS.includes(avatar) ? avatar : AVATARS[0]),
-      isHost, connected: true, disconnectedAt: null, ready: false, role: null, characterId: null, hp: 0, maxHp: 0,
+      name: cleanName(profile?.displayName || name), avatar: profile?.avatar || (AVATARS.includes(avatar) ? avatar : AVATARS[0]),
+      isHost, connected: true, disconnectedAt: null, reconnectDeadlineAt: null, ready: false, role: null, characterId: null, hp: 0, maxHp: 0,
       hand: [], equipment: [], dead: false, bangCount: 0, leaveAfterHand: false };
   }
   credentials(room, player) { return { roomCode: room.code, playerId: player.id, sessionToken: player.token, gameId: 'bang' }; }
   byId(room, id) { return room?.players.find(player => player.id === id); }
-  player(room, socket) { return room?.players.find(player => player.connected && player.socketId === socket.id); }
+  player(room, socket) { return serverActionPlayer(this, room, socket) || room?.players.find(player => player.connected && player.socketId === socket.id); }
+  refreshReconnectState(room, at = now()) {
+    const wasPaused = !!room.paused, waiting = reconnectWaiters(room, at, this.graceMs);
+    room.reconnectPaused = waiting.length > 0; room.paused = ACTIVE_PHASES.has(room.phase) && room.reconnectPaused;
+    return { wasPaused, waiting };
+  }
   living(room) { return room.players.filter(player => !player.dead); }
   bind(socket, room, player) {
-    this.playerRoom.set(socket.id, room.code); socket.join(room.code); player.socketId = socket.id; player.connected = true; player.disconnectedAt = null;
-    if (room.paused && !room.players.some(item => !item.connected)) { room.paused = false; this.addLog(room, 'Mọi người đã kết nối lại; ván tiếp tục.'); this.touch(room); }
+    player.name = cleanName(this.profileForSocket(socket)?.displayName || player.name);
+    this.playerRoom.set(socket.id, room.code); socket.join(room.code); player.socketId = socket.id; markConnected(player);
+    const { wasPaused, waiting } = this.refreshReconnectState(room);
+    if (wasPaused && !waiting.length) { this.addLog(room, 'Mọi người đã kết nối lại; ván tiếp tục.'); this.touch(room); }
   }
   ensureHost(room) { if (room.players.some(player => player.isHost && player.connected)) return; const next = room.players.find(player => player.connected) || room.players[0]; room.players.forEach(player => { player.isHost = player === next; }); }
   addLog(room, message) { room.log.unshift({ id: crypto.randomUUID(), message, at: new Date().toISOString() }); room.log = room.log.slice(0, 80); }
@@ -51,7 +67,8 @@ class BangManager {
     const room = this.rooms.get(code), player = this.player(room, socket);
     if (!room || !player) return this.error(socket, 'Bạn không còn ở trong phòng BANG! này.');
     if (phases && !phases.includes(room.phase)) return this.error(socket, 'Thao tác không phù hợp với giai đoạn hiện tại.');
-    if (ACTIVE_PHASES.has(room.phase) && (room.paused || room.players.some(item => !item.connected))) return this.error(socket, 'Ván đang tạm dừng do có người mất kết nối.');
+    const { waiting } = this.refreshReconnectState(room);
+    if (!isServerActionSocket(this, socket) && ACTIVE_PHASES.has(room.phase) && waiting.length) return this.error(socket, `Ván đang tạm dừng; chờ ${waiting.map(item => item.name).join(', ')} kết nối lại.`);
     return { room, player };
   }
 
@@ -85,7 +102,7 @@ class BangManager {
     this.startRound(room); this.broadcast(code); return { ok: true };
   }
   startRound(room) {
-    room.matchId = crypto.randomUUID(); room.deck = this.shuffle(createBangDeck()); room.discard = []; room.result = null; room.pending = null; room.actionIds = {}; room.paused = false;
+    room.reconnectPolicyVersion = 2; room.matchId = crypto.randomUUID(); room.deck = this.shuffle(createBangDeck()); room.discard = []; room.result = null; room.pending = null; room.actionIds = {}; room.paused = false; room.reconnectPaused = false;
     const roles = this.shuffle(ROLE_SETS[room.players.length]), characters = this.shuffle(CHARACTERS);
     room.players.forEach((player, index) => {
       const character = characters[index], sheriff = roles[index] === 'SHERIFF'; player.role = roles[index]; player.characterId = character.id; player.maxHp = character.maxHp + (sheriff ? 1 : 0); player.hp = player.maxHp; player.hand = []; player.equipment = []; player.dead = false; player.bangCount = 0; player.ready = false; player.leaveAfterHand = false;
@@ -370,7 +387,8 @@ class BangManager {
     room.phase = 'WAITING'; room.matchId = null; room.deck = []; room.discard = []; room.currentPlayerId = null; room.pending = null; room.result = null; room.actionIds = {}; room.players.forEach(item => { item.ready = false; item.role = null; item.characterId = null; item.hp = 0; item.maxHp = 0; item.hand = []; item.equipment = []; item.dead = false; item.bangCount = 0; }); this.addLog(room, 'Trở về phòng chờ; mọi người cần sẵn sàng lại.'); return true;
   }
   leaveRoom(socket, code) {
-    const ctx = this.access(socket, code); if (!ctx || ctx.error) return ctx; const { room, player } = ctx;
+    const room = this.rooms.get(code), player = this.player(room, socket);
+    if (!room || !player || isServerActionSocket(this, socket)) return this.error(socket, 'Bạn không còn ở trong phòng BANG! này.');
     if (ACTIVE_PHASES.has(room.phase)) { player.leaveAfterHand = true; this.addLog(room, `${player.name} sẽ rời bàn sau ván.`); this.touch(room); this.broadcast(code); return { queued: true }; }
     room.players = room.players.filter(item => item !== player); this.playerRoom.delete(socket.id); socket.leave(code); socket.emit('room_left'); if (!room.players.length) { this.rooms.delete(code); this.saveSoon(); return; }
     this.ensureHost(room); this.addLog(room, `${player.name} rời phòng.`); this.touch(room); this.broadcast(code); return { ok: true };
@@ -378,7 +396,8 @@ class BangManager {
   syncState(socket, code) { const ctx = this.access(socket, code); if (ctx && !ctx.error) socket.emit('game_state', this.buildStateFor(ctx.room, ctx.player.id)); return ctx; }
   handleDisconnect(socket) {
     const code = this.playerRoom.get(socket.id), room = this.rooms.get(code), player = this.player(room, socket); this.playerRoom.delete(socket.id); if (!player) return;
-    player.connected = false; player.socketId = null; player.disconnectedAt = now(); this.ensureHost(room); if (ACTIVE_PHASES.has(room.phase)) room.paused = true; this.addLog(room, `${player.name} mất kết nối${ACTIVE_PHASES.has(room.phase) ? '; ván tạm dừng để giữ trạng thái.' : '.'}`); this.touch(room); this.broadcast(code);
+    markDisconnected(player, now(), this.graceMs); this.ensureHost(room); this.refreshReconnectState(room);
+    this.addLog(room, `${player.name} mất kết nối; có 120 giây để khôi phục ghế${ACTIVE_PHASES.has(room.phase) ? ', sau đó server sẽ tự phản hồi hiệu ứng hoặc kết thúc lượt.' : '.'}`); this.touch(room); this.broadcast(code); this.flush();
   }
   publicCard(card) { return card ? { id: card.id, type: card.type, name: card.name, rank: card.rank, suit: card.suit, border: card.border, weaponRange: card.weaponRange || null } : null; }
   publicPending(room, playerId) {
@@ -392,23 +411,43 @@ class BangManager {
   buildStateFor(room, playerId) {
     const me = this.byId(room, playerId); return { gameId: 'bang', roomCode: room.code, rulesVersion: room.rulesVersion, phase: room.phase, revision: room.revision, matchId: room.matchId, myId: playerId, currentPlayerId: room.currentPlayerId, paused: room.paused,
       deckCount: room.deck.length, discardTop: this.publicCard(room.discard.at(-1)), discardCount: room.discard.length, myHand: me?.hand.map(card => this.publicCard(card)) || [], pending: this.publicPending(room, playerId), result: room.result, log: room.log,
-      players: room.players.map(player => { const character = characterById(player.characterId); return { id: player.id, name: player.name, avatar: player.avatar, isHost: player.isHost, ready: player.ready, connected: player.connected, leaveAfterHand: player.leaveAfterHand, dead: player.dead, hp: player.hp, maxHp: player.maxHp, handCount: player.hand.length, role: this.roleFor(room, playerId, player), character: character ? { id: character.id, name: character.name, ability: character.ability } : null, equipment: player.equipment.map(card => this.publicCard(card)), distanceFromMe: me && !me.dead && !player.dead && me.id !== player.id ? this.distance(room, me.id, player.id) : null, range: this.weaponRange(player) }; }) };
+      players: room.players.map(player => { const character = characterById(player.characterId); return { id: player.id, name: cleanName(player.name), avatar: player.avatar, isHost: player.isHost, ready: player.ready, connected: player.connected, leaveAfterHand: player.leaveAfterHand, dead: player.dead, hp: player.hp, maxHp: player.maxHp, handCount: player.hand.length, role: this.roleFor(room, playerId, player), character: character ? { id: character.id, name: character.name, ability: character.ability } : null, equipment: player.equipment.map(card => this.publicCard(card)), distanceFromMe: me && !me.dead && !player.dead && me.id !== player.id ? this.distance(room, me.id, player.id) : null, range: this.weaponRange(player) }; }) };
   }
   broadcast(code) { const room = this.rooms.get(code); if (!room) return; room.updatedAt = now(); for (const player of room.players) { const socket = this.io.sockets.sockets.get(player.socketId); if (socket && player.connected) socket.emit('game_state', this.buildStateFor(room, player.id)); } this.saveSoon(); }
   cleanup() {
-    for (const room of this.rooms.values()) {
-      if (room.phase === 'WAITING') { const expired = room.players.filter(player => !player.connected && now() - player.disconnectedAt > this.graceMs); if (expired.length) { room.players = room.players.filter(player => !expired.includes(player)); if (!room.players.length) { this.rooms.delete(room.code); this.saveSoon(); continue; } this.ensureHost(room); this.touch(room); this.broadcast(room.code); } }
-      if ((ACTIVE_PHASES.has(room.phase) || room.phase === 'RESULT') && !room.players.some(player => player.connected) && now() - room.updatedAt > 12 * 3600000) { this.rooms.delete(room.code); this.saveSoon(); }
+    const at = now();
+    for (const room of [...this.rooms.values()]) {
+      const { wasPaused, waiting } = this.refreshReconnectState(room, at);
+      if (wasPaused && !waiting.length && ACTIVE_PHASES.has(room.phase)) { this.addLog(room, 'Hết 120 giây khôi phục; BANG! tiếp tục và server sẽ xử lý lượt hợp lệ khi ghế vắng đến lượt.'); this.touch(room); this.broadcast(room.code); }
+      if (['WAITING', 'RESULT'].includes(room.phase)) {
+        const expired = room.players.filter(player => isReconnectExpired(player, at, this.graceMs));
+        if (expired.length) {
+          room.players = room.players.filter(player => !expired.includes(player));
+          expired.forEach(player => this.profileStore?.markMemberLeft?.({ gameId: 'bang', roomCode: room.code, playerId: player.id }));
+          if (!room.players.length) { this.rooms.delete(room.code); this.profileStore?.closeGameRoom?.('bang', room.code); this.saveSoon(); continue; }
+          this.ensureHost(room); this.touch(room); this.broadcast(room.code);
+        }
+      }
     }
   }
   load() {
     if (!this.storageFile || !fs.existsSync(this.storageFile)) return;
-    try { const saved = JSON.parse(fs.readFileSync(this.storageFile, 'utf8')); if (saved.version !== 1 || !Array.isArray(saved.rooms)) throw new Error('Định dạng lưu BANG! không hợp lệ');
-      for (const room of saved.rooms) { if (now() - room.updatedAt > 12 * 3600000) continue; room.players.forEach(player => { player.connected = false; player.socketId = null; player.disconnectedAt = now(); player.hand ||= []; player.equipment ||= []; player.bangCount ||= 0; }); room.deck ||= []; room.discard ||= []; room.actionIds ||= {}; room.log ||= []; room.pending ||= null; room.paused = ACTIVE_PHASES.has(room.phase); this.rooms.set(room.code, room); }
-    } catch (error) { console.error('Không đọc được dữ liệu phòng BANG!:', error.message); this.storageError = true; }
+    try { runStorageOperation(this.storageDiagnostics, 'manager:bang', 'read', 'room-file-load', () => {
+      const saved = JSON.parse(fs.readFileSync(this.storageFile, 'utf8')); if (saved.version !== 1 || !Array.isArray(saved.rooms)) throw new Error('Định dạng lưu BANG! không hợp lệ');
+      let changed = false;
+      for (const room of saved.rooms) {
+        if (now() - room.updatedAt > 12 * 3600000 && !ACTIVE_PHASES.has(room.phase) && room.phase !== 'RESULT') continue;
+        changed = restoreDisconnectedSeats(room.players, now(), this.graceMs) || changed;
+        room.players.forEach(player => { player.hand ||= []; player.equipment ||= []; player.bangCount ||= 0; player.leaveAfterHand ||= false; });
+        room.deck ||= []; room.discard ||= []; room.actionIds ||= {}; room.log ||= []; room.pending ||= null;
+        this.refreshReconnectState(room); this.rooms.set(room.code, room);
+      }
+      if (changed) this.flush();
+    }, { recoveryVerified: true, failureCode: 'ROOM_JSON_READ_FAILED' });
+    } catch (error) { console.error('Không đọc được dữ liệu phòng BANG!:', error.message); this.storageReadError = true; this.storageError = true; }
   }
-  saveSoon() { if (!this.storageFile || this.storageError || this.saveTimer) return; this.saveTimer = setTimeout(() => { this.saveTimer = null; this.flush(); }, 100); this.saveTimer.unref(); }
-  flush() { if (!this.storageFile || this.storageError) return; try { fs.mkdirSync(path.dirname(this.storageFile), { recursive: true }); fs.writeFileSync(`${this.storageFile}.tmp`, JSON.stringify({ version: 1, rooms: [...this.rooms.values()] }), { mode: 0o600 }); fs.renameSync(`${this.storageFile}.tmp`, this.storageFile); } catch (error) { console.error('Không lưu được dữ liệu phòng BANG!:', error.message); } }
+  saveSoon() { if (!this.storageFile || this.storageReadError || this.saveTimer) return; this.saveTimer = setTimeout(() => { this.saveTimer = null; this.flush(); }, 100); this.saveTimer.unref(); }
+  flush() { if (!this.storageFile || this.storageReadError) return; try { runStorageOperation(this.storageDiagnostics, 'manager:bang', this.runStateMutation ? 'export' : 'write', 'room-file-save', () => { fs.mkdirSync(path.dirname(this.storageFile), { recursive: true }); fs.writeFileSync(`${this.storageFile}.tmp`, JSON.stringify({ version: 1, rooms: [...this.rooms.values()] }), { mode: 0o600 }); fs.renameSync(`${this.storageFile}.tmp`, this.storageFile); }, { failureCode: 'ROOM_JSON_WRITE_FAILED' }); } catch (error) { console.error('Không lưu được dữ liệu phòng BANG!:', error.message); } }
 }
 
 module.exports = { BangManager, ACTIVE_PHASES };

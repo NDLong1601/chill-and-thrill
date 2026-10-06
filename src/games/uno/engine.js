@@ -380,7 +380,7 @@ function visibleState(match, playerId, players, room, now = Date.now()) {
     availableActions: availableActions(match, playerId, now), myHand: clone(hand), result,
     disconnected: players.filter(player => !player.connected).map(player => player.name),
     strictChat: false, quickChat: [], chatLog: room.chatLog || [], log: clone(match.log || []).slice(0, 40),
-    players: players.map(player => ({ id: player.id, name: player.name, avatar: player.avatar, isHost: player.isHost,
+    players: players.map(player => ({ id: player.id, name: require('../../../public/js/game-values').cleanDisplayName(player.name) || 'Player', avatar: player.avatar, isHost: player.isHost,
       connected: player.connected, ready: player.ready, cardCount: match.hands[player.id]?.length || 0,
       isCurrent: player.id === match.currentPlayerId, unoCalled: !match.unoWindow || match.unoWindow.playerId !== player.id })),
   };

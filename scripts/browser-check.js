@@ -78,11 +78,13 @@ async function main() {
     assert.equal(await friend.locator('#rotate-device-overlay').isVisible(), false);
     const homeWidth = await friend.evaluate(() => ({ viewport: innerWidth, content: document.documentElement.scrollWidth }));
     assert.ok(homeWidth.content <= homeWidth.viewport + 1, `Home overflows: ${JSON.stringify(homeWidth)}`);
-    await host.locator('#portal-tutorial').click();
+    await host.locator('#portal-player-name').fill('Chủ phòng');
+    await host.locator('[data-game-card-action="the-gang"]').click();
+    await host.locator('#btn-detail-tutorial').click();
     for (const value of [2, 2, 1, 1]) { await host.getByRole('button', { name: `Chọn ${value}⭐`, exact: true }).click(); await host.locator('#btn-tutorial-next').click(); }
     assert.match(await host.locator('#tutorial-content').innerText(), /cả đội cùng thắng/);
     await host.locator('[data-close="modal-tutorial"]').click();
-    await host.locator('#inp-name').fill('Chủ phòng'); await host.locator('input[value="BASIC"]').check(); await host.locator('#btn-create').click();
+    await host.locator('#detail-difficulty').selectOption('BASIC'); await host.locator('#detail-create').click();
     await host.locator('#screen-waiting.active').waitFor();
     await host.waitForFunction(() => document.querySelector('#room-qr').complete && document.querySelector('#room-qr').naturalWidth > 0);
     const code = await host.locator('#disp-room-code').innerText();
@@ -110,6 +112,8 @@ async function main() {
     await friend.screenshot({ path: path.join(outputs, 'mobile-own-hand.png') });
     await host.locator('[title="Chọn chip 2⭐"]').click(); await friend.locator('[title="Chọn chip 1⭐"]').click();
     await host.waitForFunction(() => lastState.players[0].chips.white === 2 && lastState.players[1].chips.white === 1);
+    assert.equal(await friend.evaluate(() => !!document.fullscreenElement), false, 'Game actions do not steal focus by entering fullscreen');
+    await friend.locator('#btn-fullscreen').tap();
     await friend.waitForFunction(() => !!document.fullscreenElement);
     await friend.locator('#btn-fullscreen').tap();
     await friend.waitForFunction(() => !document.fullscreenElement);

@@ -1,0 +1,699 @@
+{
+  "version": 1,
+  "cards": {
+    "AS": {
+      "url": "/assets/game/cards/AS.webp",
+      "width": 192,
+      "height": 280,
+      "bytes": 49468,
+      "crop": [
+        20,
+        196,
+        217,
+        503
+      ]
+    },
+    "2S": {
+      "url": "/assets/game/cards/2S.webp",
+      "width": 192,
+      "height": 280,
+      "bytes": 47196,
+      "crop": [
+        221,
+        196,
+        420,
+        503
+      ]
+    },
+    "3S": {
+      "url": "/assets/game/cards/3S.webp",
+      "width": 192,
+      "height": 280,
+      "bytes": 46066,
+      "crop": [
+        423,
+        196,
+        622,
+        503
+      ]
+    },
+    "4S": {
+      "url": "/assets/game/cards/4S.webp",
+      "width": 192,
+      "height": 280,
+      "bytes": 44774,
+      "crop": [
+        625,
+        196,
+        823,
+        503
+      ]
+    },
+    "5S": {
+      "url": "/assets/game/cards/5S.webp",
+      "width": 192,
+      "height": 280,
+      "bytes": 47438,
+      "crop": [
+        827,
+        196,
+        1026,
+        503
+      ]
+    },
+    "6S": {
+      "url": "/assets/game/cards/6S.webp",
+      "width": 192,
+      "height": 280,
+      "bytes": 46702,
+      "crop": [
+        1029,
+        196,
+        1228,
+        503
+      ]
+    },
+    "7S": {
+      "url": "/assets/game/cards/7S.webp",
+      "width": 192,
+      "height": 280,
+      "bytes": 46286,
+      "crop": [
+        1232,
+        196,
+        1431,
+        503
+      ]
+    },
+    "8S": {
+      "url": "/assets/game/cards/8S.webp",
+      "width": 192,
+      "height": 280,
+      "bytes": 46272,
+      "crop": [
+        21,
+        529,
+        248,
+        873
+      ]
+    },
+    "9S": {
+      "url": "/assets/game/cards/9S.webp",
+      "width": 192,
+      "height": 280,
+      "bytes": 47742,
+      "crop": [
+        252,
+        529,
+        478,
+        873
+      ]
+    },
+    "10S": {
+      "url": "/assets/game/cards/10S.webp",
+      "width": 192,
+      "height": 280,
+      "bytes": 49376,
+      "crop": [
+        483,
+        529,
+        710,
+        873
+      ]
+    },
+    "JS": {
+      "url": "/assets/game/cards/JS.webp",
+      "width": 192,
+      "height": 280,
+      "bytes": 79234,
+      "crop": [
+        716,
+        529,
+        946,
+        873
+      ]
+    },
+    "QS": {
+      "url": "/assets/game/cards/QS.webp",
+      "width": 192,
+      "height": 280,
+      "bytes": 81632,
+      "crop": [
+        951,
+        529,
+        1188,
+        873
+      ]
+    },
+    "KS": {
+      "url": "/assets/game/cards/KS.webp",
+      "width": 192,
+      "height": 280,
+      "bytes": 79416,
+      "crop": [
+        1192,
+        529,
+        1429,
+        873
+      ]
+    },
+    "AH": {
+      "url": "/assets/game/cards/AH.webp",
+      "width": 192,
+      "height": 280,
+      "bytes": 45504,
+      "crop": [
+        18,
+        195,
+        218,
+        506
+      ]
+    },
+    "2H": {
+      "url": "/assets/game/cards/2H.webp",
+      "width": 192,
+      "height": 280,
+      "bytes": 43766,
+      "crop": [
+        219,
+        195,
+        419,
+        506
+      ]
+    },
+    "3H": {
+      "url": "/assets/game/cards/3H.webp",
+      "width": 192,
+      "height": 280,
+      "bytes": 44488,
+      "crop": [
+        420,
+        195,
+        622,
+        506
+      ]
+    },
+    "4H": {
+      "url": "/assets/game/cards/4H.webp",
+      "width": 192,
+      "height": 280,
+      "bytes": 44018,
+      "crop": [
+        623,
+        195,
+        825,
+        506
+      ]
+    },
+    "5H": {
+      "url": "/assets/game/cards/5H.webp",
+      "width": 192,
+      "height": 280,
+      "bytes": 45736,
+      "crop": [
+        826,
+        195,
+        1027,
+        506
+      ]
+    },
+    "6H": {
+      "url": "/assets/game/cards/6H.webp",
+      "width": 192,
+      "height": 280,
+      "bytes": 46980,
+      "crop": [
+        1028,
+        195,
+        1229,
+        506
+      ]
+    },
+    "7H": {
+      "url": "/assets/game/cards/7H.webp",
+      "width": 192,
+      "height": 280,
+      "bytes": 44854,
+      "crop": [
+        1231,
+        195,
+        1433,
+        506
+      ]
+    },
+    "8H": {
+      "url": "/assets/game/cards/8H.webp",
+      "width": 192,
+      "height": 280,
+      "bytes": 47870,
+      "crop": [
+        20,
+        528,
+        248,
+        873
+      ]
+    },
+    "9H": {
+      "url": "/assets/game/cards/9H.webp",
+      "width": 192,
+      "height": 280,
+      "bytes": 49642,
+      "crop": [
+        250,
+        528,
+        478,
+        873
+      ]
+    },
+    "10H": {
+      "url": "/assets/game/cards/10H.webp",
+      "width": 192,
+      "height": 280,
+      "bytes": 50894,
+      "crop": [
+        480,
+        528,
+        711,
+        873
+      ]
+    },
+    "JH": {
+      "url": "/assets/game/cards/JH.webp",
+      "width": 192,
+      "height": 280,
+      "bytes": 80466,
+      "crop": [
+        714,
+        528,
+        947,
+        873
+      ]
+    },
+    "QH": {
+      "url": "/assets/game/cards/QH.webp",
+      "width": 192,
+      "height": 280,
+      "bytes": 81984,
+      "crop": [
+        949,
+        528,
+        1188,
+        873
+      ]
+    },
+    "KH": {
+      "url": "/assets/game/cards/KH.webp",
+      "width": 192,
+      "height": 280,
+      "bytes": 78588,
+      "crop": [
+        1191,
+        528,
+        1429,
+        873
+      ]
+    },
+    "AD": {
+      "url": "/assets/game/cards/AD.webp",
+      "width": 192,
+      "height": 280,
+      "bytes": 37936,
+      "crop": [
+        20,
+        195,
+        218,
+        504
+      ]
+    },
+    "2D": {
+      "url": "/assets/game/cards/2D.webp",
+      "width": 192,
+      "height": 280,
+      "bytes": 39590,
+      "crop": [
+        220,
+        195,
+        420,
+        504
+      ]
+    },
+    "3D": {
+      "url": "/assets/game/cards/3D.webp",
+      "width": 192,
+      "height": 280,
+      "bytes": 41748,
+      "crop": [
+        420,
+        195,
+        621,
+        504
+      ]
+    },
+    "4D": {
+      "url": "/assets/game/cards/4D.webp",
+      "width": 192,
+      "height": 280,
+      "bytes": 42058,
+      "crop": [
+        623,
+        195,
+        824,
+        504
+      ]
+    },
+    "5D": {
+      "url": "/assets/game/cards/5D.webp",
+      "width": 192,
+      "height": 280,
+      "bytes": 43900,
+      "crop": [
+        825,
+        195,
+        1026,
+        504
+      ]
+    },
+    "6D": {
+      "url": "/assets/game/cards/6D.webp",
+      "width": 192,
+      "height": 280,
+      "bytes": 46114,
+      "crop": [
+        1030,
+        195,
+        1230,
+        504
+      ]
+    },
+    "7D": {
+      "url": "/assets/game/cards/7D.webp",
+      "width": 192,
+      "height": 280,
+      "bytes": 44178,
+      "crop": [
+        1232,
+        195,
+        1431,
+        504
+      ]
+    },
+    "8D": {
+      "url": "/assets/game/cards/8D.webp",
+      "width": 192,
+      "height": 280,
+      "bytes": 45808,
+      "crop": [
+        21,
+        529,
+        249,
+        873
+      ]
+    },
+    "9D": {
+      "url": "/assets/game/cards/9D.webp",
+      "width": 192,
+      "height": 280,
+      "bytes": 47766,
+      "crop": [
+        252,
+        529,
+        478,
+        873
+      ]
+    },
+    "10D": {
+      "url": "/assets/game/cards/10D.webp",
+      "width": 192,
+      "height": 280,
+      "bytes": 49374,
+      "crop": [
+        482,
+        529,
+        709,
+        873
+      ]
+    },
+    "JD": {
+      "url": "/assets/game/cards/JD.webp",
+      "width": 192,
+      "height": 280,
+      "bytes": 79592,
+      "crop": [
+        715,
+        529,
+        946,
+        873
+      ]
+    },
+    "QD": {
+      "url": "/assets/game/cards/QD.webp",
+      "width": 192,
+      "height": 280,
+      "bytes": 82208,
+      "crop": [
+        950,
+        529,
+        1188,
+        873
+      ]
+    },
+    "KD": {
+      "url": "/assets/game/cards/KD.webp",
+      "width": 192,
+      "height": 280,
+      "bytes": 77654,
+      "crop": [
+        1193,
+        529,
+        1431,
+        873
+      ]
+    },
+    "AC": {
+      "url": "/assets/game/cards/AC.webp",
+      "width": 192,
+      "height": 280,
+      "bytes": 41322,
+      "crop": [
+        19,
+        195,
+        218,
+        505
+      ]
+    },
+    "2C": {
+      "url": "/assets/game/cards/2C.webp",
+      "width": 192,
+      "height": 280,
+      "bytes": 41946,
+      "crop": [
+        220,
+        195,
+        420,
+        505
+      ]
+    },
+    "3C": {
+      "url": "/assets/game/cards/3C.webp",
+      "width": 192,
+      "height": 280,
+      "bytes": 42968,
+      "crop": [
+        421,
+        195,
+        622,
+        505
+      ]
+    },
+    "4C": {
+      "url": "/assets/game/cards/4C.webp",
+      "width": 192,
+      "height": 280,
+      "bytes": 41366,
+      "crop": [
+        623,
+        195,
+        824,
+        505
+      ]
+    },
+    "5C": {
+      "url": "/assets/game/cards/5C.webp",
+      "width": 192,
+      "height": 280,
+      "bytes": 45658,
+      "crop": [
+        825,
+        195,
+        1026,
+        505
+      ]
+    },
+    "6C": {
+      "url": "/assets/game/cards/6C.webp",
+      "width": 192,
+      "height": 280,
+      "bytes": 45934,
+      "crop": [
+        1028,
+        195,
+        1229,
+        505
+      ]
+    },
+    "7C": {
+      "url": "/assets/game/cards/7C.webp",
+      "width": 192,
+      "height": 280,
+      "bytes": 46060,
+      "crop": [
+        1231,
+        195,
+        1431,
+        505
+      ]
+    },
+    "8C": {
+      "url": "/assets/game/cards/8C.webp",
+      "width": 192,
+      "height": 280,
+      "bytes": 46632,
+      "crop": [
+        20,
+        529,
+        248,
+        873
+      ]
+    },
+    "9C": {
+      "url": "/assets/game/cards/9C.webp",
+      "width": 192,
+      "height": 280,
+      "bytes": 48324,
+      "crop": [
+        250,
+        529,
+        478,
+        873
+      ]
+    },
+    "10C": {
+      "url": "/assets/game/cards/10C.webp",
+      "width": 192,
+      "height": 280,
+      "bytes": 48534,
+      "crop": [
+        482,
+        529,
+        711,
+        873
+      ]
+    },
+    "JC": {
+      "url": "/assets/game/cards/JC.webp",
+      "width": 192,
+      "height": 280,
+      "bytes": 78348,
+      "crop": [
+        714,
+        529,
+        947,
+        873
+      ]
+    },
+    "QC": {
+      "url": "/assets/game/cards/QC.webp",
+      "width": 192,
+      "height": 280,
+      "bytes": 78444,
+      "crop": [
+        950,
+        529,
+        1189,
+        873
+      ]
+    },
+    "KC": {
+      "url": "/assets/game/cards/KC.webp",
+      "width": 192,
+      "height": 280,
+      "bytes": 76400,
+      "crop": [
+        1191,
+        529,
+        1430,
+        873
+      ]
+    }
+  },
+  "icons": {
+    "coin": {
+      "url": "/assets/game/coin.webp",
+      "width": 255,
+      "height": 256,
+      "bytes": 81904
+    },
+    "gem": {
+      "url": "/assets/game/gem.webp",
+      "width": 246,
+      "height": 256,
+      "bytes": 62102
+    },
+    "chip": {
+      "url": "/assets/game/chip.webp",
+      "width": 254,
+      "height": 256,
+      "bytes": 82028
+    },
+    "logo": {
+      "url": "/assets/game/logo.webp",
+      "width": 640,
+      "height": 383,
+      "bytes": 256098
+    }
+  },
+  "sources": [
+    {
+      "file": "card/chất bích.png",
+      "sha256": "92a810510f0f856f95965026e5450eb65e1457622192aaaa00b0fd12f8517862"
+    },
+    {
+      "file": "card/chất cơ.png",
+      "sha256": "7c4a75519e1a931b122a0334b5fd4cd4cb39e7afe868627aa8cd311196beb42c"
+    },
+    {
+      "file": "card/chất rô.png",
+      "sha256": "fcf635dc1629f5c906876c222eab27c586b3ec351259c35d3f4a46b3c11f9fe5"
+    },
+    {
+      "file": "card/chất chuồn.png",
+      "sha256": "77bfdeb455886e064389dd97f8abcaa145c2a803c313e784103003e01fa4a1e6"
+    },
+    {
+      "file": "card/mặt sau.png",
+      "sha256": "3c2306b3c15f236cd94a688cdc0915a26506beb8e5e5b19a9c1780fe32738b9f"
+    },
+    {
+      "file": "coin.png",
+      "sha256": "30d2fa51e3724830ef62d90f38a7497d928f1a2495f88e3db3cd2e28974cffac"
+    },
+    {
+      "file": "gem.png",
+      "sha256": "11b7d533da7e321ccb58bf53fa78083f8d2437278454b22fd67c4f39c23986ed"
+    },
+    {
+      "file": "chip.png",
+      "sha256": "cfe584c2270fdf8c0cc93fb83a3d93a5a212ca30415add2d389d7e7d0e55c764"
+    },
+    {
+      "file": "logo.png",
+      "sha256": "3b22cc7b6c55756b478757f5c506402bb1cc7439de4d58430df10c163fd5b5ce"
+    }
+  ],
+  "back": {
+    "url": "/assets/game/cards/back.webp",
+    "width": 288,
+    "height": 406,
+    "bytes": 185826
+  }
+}

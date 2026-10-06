@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <title>Chill &amp; Thrill · Launcher</title>
+  <link rel="stylesheet" href="/style.css">
+  <script src="/app.js" defer></script>
+</head>
+<body>
+  <main class="shell">
+    <header class="topbar">
+      <div class="brand-mark" aria-hidden="true"><span class="brand-letters">C<span class="brand-amp">&amp;</span>T</span></div>
+      <div>
+        <p class="eyebrow">BẢNG ĐIỀU KHIỂN TRÊN MÁY CHỦ</p>
+        <h1>Chill &amp; Thrill</h1>
+      </div>
+      <span id="connection" class="connection"><i></i> Đang kết nối</span>
+    </header>
+
+    <section id="access-panel" class="notice access-panel" hidden>
+      <span class="notice-icon" aria-hidden="true">🔒</span>
+      <div>
+        <h2>Cần mở phiên chủ máy</h2>
+        <p>Chạy <strong>launch-chill-and-thrill.cmd</strong> từ thư mục dự án rồi dùng cửa sổ trình duyệt vừa mở.</p>
+      </div>
+    </section>
+
+    <section class="hero card">
+      <div class="hero-copy">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">MÁY CHỦ GAME</p>
+            <h2 id="server-state">Đang kiểm tra…</h2>
+          </div>
+          <span id="state-pill" class="state-pill">…</span>
+        </div>
+        <p id="state-detail" class="muted">Launcher quản lý tiến trình riêng và chỉ dừng máy chủ sau khi nhận xác nhận đóng sạch.</p>
+        <div class="actions">
+          <button id="start-button" class="button primary" type="button">▶ <span>Khởi động</span></button>
+          <button id="stop-button" class="button secondary" type="button">■ <span>Dừng an toàn</span></button>
+        </div>
+        <div id="error-panel" class="inline-error" hidden></div>
+      </div>
+      <div class="hero-art" aria-hidden="true"><span>♠</span><span>♦</span><span>♣</span><span>♥</span></div>
+    </section>
+
+    <section class="card address-card">
+      <div class="section-heading">
+        <div>
+          <p class="eyebrow">MỜI BẠN VÀO CHƠI</p>
+          <h2>Địa chỉ và mã QR</h2>
+        </div>
+        <span id="network-hint" class="muted small">QR dùng được khi các máy cùng mạng Wi-Fi/LAN.</span>
+      </div>
+      <div id="addresses" class="address-grid">
+        <p class="empty-state">Khởi động máy chủ để xem địa chỉ và mã QR.</p>
+      </div>
+      <p id="admin-shortcut" class="admin-shortcut" hidden>Quản trị phòng trên máy này: <a id="admin-link" target="_blank" rel="noopener noreferrer">Mở bảng quản trị LAN</a>. Trang quản trị yêu cầu secret <code>CHILL_ADMIN_SECRET</code> đã cấu hình trên Windows.
+      </p>
+    </section>
+
+    <section class="lower-grid">
+      <section class="card data-card">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">TỆP DỮ LIỆU</p>
+            <h2>Vị trí trên máy này</h2>
+          </div>
+          <span class="icon-badge" aria-hidden="true">📁</span>
+        </div>
+        <div class="path-row">
+          <div><span>Hồ sơ, ví và ledger</span><code id="database-path">Đang tải…</code></div>
+          <button class="icon-button" data-folder="profile" type="button" aria-label="Mở thư mục hồ sơ">Mở</button>
+        </div>
+        <div class="path-row">
+          <div><span>Phòng và dữ liệu game</span><code id="rooms-path">Đang tải…</code></div>
+          <button class="icon-button" data-folder="rooms" type="button" aria-label="Mở thư mục phòng">Mở</button>
+        </div>
+        <details class="file-list">
+          <summary>Vị trí các tệp phòng khác</summary>
+          <ul id="manager-files"></ul>
+        </details>
+        <p class="helper-copy">Tất cả game và portal dùng chung một ProfileStore. Không đổi tên hoặc thay tệp khi máy chủ đang chạy.</p>
+      </section>
+
+      <section class="card backup-card">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">SAO LƯU VÀ KHÔI PHỤC</p>
+            <h2>Dữ liệu an toàn</h2>
+          </div>
+          <span class="icon-badge" aria-hidden="true">🛡️</span>
+        </div>
+        <p class="muted">Tạo backup sẽ dừng máy chủ an toàn, chờ tiến trình thoát rồi mới xác minh và sao chép dữ liệu.</p>
+        <button id="backup-button" class="button primary wide" type="button">Tạo backup đã xác minh</button>
+        <div class="path-row backup-location">
+          <div><span>Thư mục backup</span><code id="backup-path">Đang tải…</code></div>
+          <button class="icon-button" data-folder="backups" type="button" aria-label="Mở thư mục backup">Mở</button>
+        </div>
+        <label class="field-label" for="restore-path">Khôi phục từ thư mục backup</label>
+        <div class="restore-row">
+          <input id="restore-path" type="text" autocomplete="off" spellcheck="false" placeholder="Dán đường dẫn thư mục backup đã xác minh">
+          <button id="restore-button" class="button secondary" type="button">Khôi phục</button>
+        </div>
+        <p class="helper-copy">Khôi phục luôn tạo thư mục mới cạnh backup. Máy chủ hiện tại và dữ liệu đang dùng không bị ghi đè.</p>
+      </section>
+    </section>
+
+    <footer>
+      <span>Điều khiển chỉ mở trên máy này. Người chơi kết nối tới địa chỉ game trong thẻ phía trên.</span>
+      <span id="project-path" class="project-path"></span>
+    </footer>
+    <div id="toast" class="toast" role="status" aria-live="polite"></div>
+  </main>
+</body>
+</html>

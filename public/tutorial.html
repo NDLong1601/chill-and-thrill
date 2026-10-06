@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#10151e">
+  <title>Hướng dẫn theo tình huống · Chill &amp; Thrill</title>
+  <link rel="stylesheet" href="/css/tutorial.css">
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="/" aria-label="Về trang chủ Chill &amp; Thrill"><span class="brand-mark">C</span><span>CHILL <b>&amp;</b> THRILL</span></a>
+    <a class="back-link" href="/">Về sảnh chơi</a>
+  </header>
+  <main>
+    <section class="hero">
+      <p class="eyebrow">CHƠI RÕ TỪ LƯỢT ĐẦU</p>
+      <h1>Hướng dẫn theo tình huống</h1>
+      <p class="intro">Chọn game để xem việc nên làm ở đúng pha. Bài luyện chỉ được tính khi máy chủ xác minh thao tác hợp lệ cho phiên bản này.</p>
+    </section>
+    <section class="tutorial-layout" aria-label="Hướng dẫn và bài luyện">
+      <aside class="guide-panel panel">
+        <div class="section-heading"><div><p class="eyebrow">TRA CỨU NHANH</p><h2>Chọn game</h2></div></div>
+        <label class="field-label" for="game-select">Game và biến thể</label>
+        <select id="game-select" aria-describedby="guide-variant"></select>
+        <p id="guide-variant" class="variant-note"></p>
+        <div id="guide-body" class="guide-body" aria-live="polite"></div>
+        <a id="rules-link" class="rules-link" href="#" hidden target="_blank" rel="noreferrer">Đọc đầy đủ luật của biến thể</a>
+      </aside>
+      <section class="exercise-panel panel" aria-labelledby="exercise-title">
+        <div class="section-heading"><div><p class="eyebrow">CHƯƠNG TRÌNH <span id="curriculum-version">đang tải</span></p><h2 id="exercise-title">Bài luyện được xác minh</h2></div><span class="reward-pill">+200 coin · một lần / hồ sơ / phiên bản</span></div>
+        <p id="exercise-status" class="status" role="status" aria-live="polite">Đang nối với máy chủ…</p>
+        <div id="exercise-content" class="exercise-content" hidden></div>
+        <div class="exercise-actions">
+          <button id="start-button" class="button primary" type="button">Bắt đầu chương trình</button>
+          <button id="submit-button" class="button primary" type="button" hidden>Gửi để xác minh</button>
+          <button id="claim-button" class="button secondary" type="button" hidden>Nhận 200 coin</button>
+        </div>
+        <p class="fine-print">Thưởng hướng dẫn là nhiệm vụ một lần theo hồ sơ và phiên bản. Nó không tính vào tổng thưởng của 3 nhiệm vụ ngày.</p>
+      </section>
+    </section>
+    <section class="privacy-note" aria-label="Bảo vệ bài riêng"><span aria-hidden="true">◈</span><p>Hướng dẫn chỉ dùng trạng thái công khai và thông tin riêng của ghế bạn. Bài của ghế khác không được đưa vào gợi ý.</p></section>
+  </main>
+  <script src="/js/tutorial-content.js"></script>
+  <script src="/js/context-help.js"></script>
+  <script src="/js/tutorial.js"></script>
+</body>
+</html>

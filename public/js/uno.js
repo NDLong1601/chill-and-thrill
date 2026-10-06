@@ -34,15 +34,16 @@ function timerText(deadline) { const seconds = Math.max(0, Math.ceil((deadline -
 function renderPlayers(target, game = false) {
   target.innerHTML = '';
   state.players.forEach(player => {
-    const item = document.createElement('article'); item.className = `player${player.id === state.currentPlayerId ? ' current' : ''}${player.id === playerId ? ' me' : ''}`;
+    const item = document.createElement('article'); item.dataset.playerId = player.id; item.className = `player${player.id === state.currentPlayerId ? ' current' : ''}${player.id === playerId ? ' me' : ''}`;
     const role = player.isHost ? ' · chủ phòng' : '';
     const turn = game && player.id === state.currentPlayerId ? ' · đang lượt' : '';
-    item.innerHTML = `<span class="player-name">${escapeHtml(player.avatar)} ${escapeHtml(player.name)}</span><span class="player-meta">${player.connected ? '● online' : '○ mất kết nối'}${game ? ` · ${player.handCount} lá${turn}` : `${role}${player.ready ? ' · sẵn sàng' : ''}`}</span>`;
+    const leave = player.leaveAfterHand ? ' · rời sau ván' : '';
+    item.innerHTML = `<span class="player-name">${escapeHtml(player.avatar)} ${escapeHtml(player.name)}</span><span class="player-meta">${player.connected ? '● online' : '○ mất kết nối'}${game ? ` · ${player.handCount} lá${turn}${leave}` : `${role}${player.ready ? ' · sẵn sàng' : ''}`}</span>`;
     target.appendChild(item);
   });
 }
 function renderRoom() {
-  show('room-view'); $('room-title').textContent = state.roomCode; $('qr').src = `/api/rooms/${encodeURIComponent(state.roomCode)}/qr`;
+  show('room-view'); $('room-title').textContent = state.roomCode;
   renderPlayers($('room-players'));
   const me = playerById(playerId), allReady = state.players.length >= 2 && state.players.every(player => player.ready && player.connected);
   $('ready').textContent = me?.ready ? 'Bỏ sẵn sàng' : 'Sẵn sàng';
@@ -51,6 +52,7 @@ function renderRoom() {
 }
 function renderGame() {
   show('game-view'); $('game-room').textContent = state.roomCode; renderPlayers($('players'), true);
+  $('game-leave').textContent = state.phase === 'RESULT' ? 'Rời phòng' : 'Rời phòng · hủy ván';
   const top = state.discardTop; $('draw-count').textContent = `${state.drawPileCount} lá`;
   const discard = $('discard-pile'); discard.className = `pile discard-pile ${top?.color || (top?.symbol?.startsWith('wild') ? 'wild' : '')}`;
   discard.textContent = top ? cardText(top) : '?'; $('current-color').textContent = `Màu hiện tại: ${colorNames[state.currentColor] || '-'}`; $('direction').textContent = state.direction === 1 ? '↻ Theo chiều kim đồng hồ' : '↺ Ngược chiều kim đồng hồ';
@@ -76,14 +78,23 @@ function renderReaction() {
   else if (state.phase === 'DRAW_PENALTY' && state.pendingDraw?.targetId === playerId) add(`Rút ${state.pendingDraw.count} lá`, 'draw_penalty');
   if (!target.childNodes.length && !target.textContent) target.textContent = me?.id === state.currentPlayerId ? 'Chọn một lá hoặc xử lý hành động bắt buộc.' : 'Đang chờ lượt của bạn.';
 }
+let lastUnoMatchId = null;
 function renderHand() {
   const target = $('hand'); target.innerHTML = ''; $('hand-count').textContent = `(${state.myHand.length} lá)`;
   const mayPlay = state.phase === 'TURN' && state.currentPlayerId === playerId && !state.paused;
-  state.myHand.forEach(card => {
+  const isNewDeal = state.matchId && state.matchId !== lastUnoMatchId && state.phase !== 'WAITING' && state.phase !== 'RESULT';
+  if (isNewDeal) lastUnoMatchId = state.matchId;
+  state.myHand.forEach((card, index) => {
     const button = document.createElement('button'); button.className = `uno-card ${card.color || 'wild'}`; button.textContent = cardText(card);
     button.disabled = !mayPlay || (state.drawnCardId && state.drawnCardId !== card.id);
     button.title = card.color ? `${colorNames[card.color]} ${cardText(card)}` : `${cardText(card)} — chọn màu ở trên`;
     button.addEventListener('click', () => send('play', { cardId: card.id, ...(card.color ? {} : { color: selectedColor }) })); target.appendChild(button);
+    if (isNewDeal) {
+      button.animate([
+        { opacity: 0, transform: 'translateY(-26px) scale(0.9)' },
+        { opacity: 1, transform: 'none' }
+      ], { duration: 240, delay: Math.min(index * 25, 260), easing: 'cubic-bezier(0.2, 0.85, 0.3, 1.1)' });
+    }
   });
 }
 function renderResult() {
@@ -91,7 +102,15 @@ function renderResult() {
   target.hidden = false; const me = playerById(playerId); target.innerHTML = `<h2>${state.result.winnerId === playerId ? 'Bạn thắng!' : `${escapeHtml(state.result.winnerName)} đã thắng`}</h2><p>Ván kết thúc khi người thắng đánh hết bài. Chưa có chip hay điểm tích lũy trong UNO.</p>`;
   if (me?.isHost) { const button = document.createElement('button'); button.className = 'primary'; button.textContent = 'Chơi lại cùng phòng'; button.addEventListener('click', () => send('play_again')); target.appendChild(button); }
 }
-function render() { if (!state) return; if (state.phase === 'WAITING') renderRoom(); else renderGame(); }
+function render() {
+  if (!state) return;
+  if (state.phase === 'WAITING') renderRoom(); else renderGame();
+  const active = ['TURN', 'UNO_WINDOW', 'WDF_CHALLENGE', 'DRAW_PENALTY'].includes(state.phase);
+  const queued = playerById(playerId)?.leaveAfterHand;
+  $('game-leave-after-hand').hidden = !active || !!queued;
+  $('game-leave-after-hand').textContent = queued ? 'Rời sau ván đã xếp lịch' : 'Rời sau ván';
+  $('game-leave').textContent = state.phase === 'RESULT' ? 'Rời phòng' : 'Hủy ván & rời';
+}
 
 function requestRoom(event) {
   const name = $('name').value.trim(); if (!name) return notice('Hãy nhập tên trước.');
@@ -102,11 +121,11 @@ $('create').addEventListener('click', () => requestRoom('create_room')); $('join
 $('room-code').addEventListener('input', event => { event.target.value = event.target.value.toUpperCase(); }); $('room-code').addEventListener('keydown', event => { if (event.key === 'Enter') requestRoom('join_room'); });
 $('ready').addEventListener('click', () => { const me = playerById(playerId); socket.emit('set_ready', { roomCode, ready: !me?.ready }); }); $('start').addEventListener('click', () => socket.emit('start_game', { roomCode }));
 async function copyCode() { try { await navigator.clipboard.writeText(roomCode); notice('Đã sao chép mã phòng.'); } catch { notice(`Mã phòng: ${roomCode}`); } }
-$('copy-code').addEventListener('click', copyCode); $('leave').addEventListener('click', () => socket.emit('leave_room', { roomCode })); $('game-leave').addEventListener('click', () => notice('Bạn có thể rời phòng khi ván kết thúc.')); $('draw-pile').addEventListener('click', () => { if (state?.phase === 'TURN' && state.currentPlayerId === playerId && !state.drawnCardId) send('draw'); });
+$('copy-code').addEventListener('click', copyCode); $('leave').addEventListener('click', () => socket.emit('leave_room', { roomCode })); $('game-leave').addEventListener('click', () => socket.emit('leave_room', { roomCode })); $('game-leave').title = 'Hủy ván hiện tại và rời phòng ngay.'; $('game-leave-after-hand').addEventListener('click', () => send('leave_after_hand')); $('draw-pile').addEventListener('click', () => { if (state?.phase === 'TURN' && state.currentPlayerId === playerId && !state.drawnCardId) send('draw'); });
 
 function storeCredentials(payload) { roomCode = payload.roomCode; playerId = payload.playerId; rememberProfile(payload); localStorage.setItem(credentialsKey(roomCode), JSON.stringify(payload)); }
 socket.on('room_created', payload => { storeCredentials(payload); notice('Đã tạo phòng UNO.'); }); socket.on('room_joined', payload => { storeCredentials(payload); notice('Đã vào phòng UNO.'); }); socket.on('room_resumed', payload => { storeCredentials(payload); notice('Đã khôi phục ghế UNO.'); });
-socket.on('game_state', next => { if (next.gameId !== 'uno') return; state = next; roomCode = next.roomCode; playerId = next.myId; render(); }); socket.on('game_error', payload => notice(payload.message)); socket.on('join_error', payload => notice(payload.message)); socket.on('resume_error', payload => { notice(payload.message); show('home-view'); }); socket.on('room_left', () => { state = null; roomCode = ''; playerId = ''; show('home-view'); });
+socket.on('game_state', next => { if (next.gameId !== 'uno') return; state = next; roomCode = next.roomCode; playerId = next.myId; window.TablePreferences?.updateTablePreferences('#game-view', state, { before: '#players' }); render(); }); socket.on('game_error', payload => notice(payload.message)); socket.on('join_error', payload => notice(payload.message)); socket.on('resume_error', payload => { notice(payload.message); show('home-view'); }); socket.on('room_left', () => { state = null; roomCode = ''; playerId = ''; lastUnoMatchId = null; show('home-view'); });
 socket.on('profile_state', rememberProfile);
 socket.on('connect', () => { socket.emit('profile_status', {}); const code = new URLSearchParams(location.search).get('room')?.trim().toUpperCase(); if (!code || code.length !== 4) return; const saved = localStorage.getItem(credentialsKey(code)); if (saved) { try { const credentials = JSON.parse(saved); socket.emit('resume_room', credentials); return; } catch {} } $('room-code').value = code; notice('Nhập tên để vào phòng UNO từ lời mời.'); });
 setInterval(() => { if (state?.reactionDeadlineAt) render(); }, 1000);

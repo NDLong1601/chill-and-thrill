@@ -86,7 +86,8 @@ test('M3 match replay advances missions once and an atomic claim cannot mint twi
   const secondClaim = store.claimMission(player.profile.id, 'daily_match', 1);
   assert.equal(firstClaim.reward, 100);
   assert.equal(secondClaim.idempotent, true);
-  assert.equal(store.publicProfile(player.profile.id).wallet.available, 1100);
+  assert.equal(store.publicProfile(player.profile.id).balances.coin.available, 1100);
+  assert.equal(store.publicProfile(player.profile.id).wallet.available, 1000);
   const oldDay = '2026-10-01T16:30:00.000Z';
   assert.equal(vietnamDay(oldDay), '2026-10-01');
   store.recordCompletedMatch({ ...match, matchId: 'm-old-day-0001', completedAt: oldDay });

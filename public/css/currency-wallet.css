@@ -1,0 +1,54 @@
+.currency-wallet-overview {
+  padding: 12px 14px;
+  border: 1px solid rgba(245, 205, 104, .26);
+  border-radius: 12px;
+  background: rgba(245, 205, 104, .07);
+}
+
+.currency-wallet-overview p {
+  margin: 0;
+  color: var(--portal-muted, #b8c5da);
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+.currency-wallet-overview p + p { margin-top: 6px; }
+
+.currency-exchange-max {
+  width: fit-content;
+  margin-top: 8px;
+  padding: 7px 10px;
+  color: #f5d77a;
+  background: rgba(245, 205, 104, .09);
+  border: 1px solid rgba(245, 205, 104, .38);
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.currency-exchange-max:disabled { cursor: not-allowed; opacity: .5; }
+
+.currency-exchange-preview {
+  padding: 11px 13px;
+  border: 1px solid rgba(103, 214, 173, .32);
+  border-radius: 10px;
+  background: rgba(35, 142, 106, .11);
+  color: #c7f7e2;
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+.currency-exchange-preview.is-error {
+  color: #ffe0a8;
+  border-color: rgba(246, 174, 81, .42);
+  background: rgba(166, 104, 33, .13);
+}
+
+.currency-exchange button[type="submit"]:disabled { cursor: not-allowed; opacity: .5; }
+
+@media (max-width: 560px) {
+  .currency-wallet-overview { padding: 10px 11px; }
+  .currency-exchange-preview { overflow-wrap: anywhere; }
+  .currency-exchange-max { width: 100%; }
+}

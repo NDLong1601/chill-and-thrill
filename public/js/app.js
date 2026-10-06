@@ -6,11 +6,13 @@
 
 const PROFILE_TOKEN_KEY = 'chill-thrill:profile-token';
 const PROFILE_RECOVERY_KEY = 'chill-thrill:profile-recovery';
-const existingProfileToken = localStorage.getItem(PROFILE_TOKEN_KEY) || localStorage.getItem('gang.profileToken');
+function readLocalPreference(key) { try { return localStorage.getItem(key); } catch { return null; } }
+function writeLocalPreference(key, value) { try { localStorage.setItem(key, value); } catch {} }
+const existingProfileToken = readLocalPreference(PROFILE_TOKEN_KEY) || readLocalPreference('gang.profileToken');
 const socket = io({ auth: existingProfileToken ? { profileToken: existingProfileToken } : {} });
 socket.on('profile_state', data => {
-  if (data.profileToken) { localStorage.setItem(PROFILE_TOKEN_KEY, data.profileToken); socket.auth = { profileToken: data.profileToken }; }
-  if (data.recoveryCode) localStorage.setItem(PROFILE_RECOVERY_KEY, data.recoveryCode);
+  if (data.profileToken) { writeLocalPreference(PROFILE_TOKEN_KEY, data.profileToken); socket.auth = { profileToken: data.profileToken }; }
+  if (data.recoveryCode) writeLocalPreference(PROFILE_RECOVERY_KEY, data.recoveryCode);
 });
 
 // ── App State ──────────────────────────────────────────────────────────
@@ -400,7 +402,6 @@ socket.on('game_state', (state) => {
   lastState = state;
   myId = state.myId;
   roomCode = state.roomCode;
-
   const me = state.players.find((p) => p.id === myId);
   isHost = me?.isHost || false;
 
@@ -412,6 +413,7 @@ socket.on('game_state', (state) => {
       showScreen('screen-uno');
       if (typeof renderUnoState === 'function') renderUnoState(state);
     }
+    window.TablePreferences?.updateTablePreferences('#screen-uno', state, { before: '#uno-status' });
     return;
   }
 
@@ -437,6 +439,7 @@ socket.on('game_state', (state) => {
       }
     }
   }
+  window.TablePreferences?.updateTablePreferences('#screen-game', state, { before: '#game-status-banner' });
 });
 
 // Spotlight card popup
@@ -663,18 +666,28 @@ function renderPerimeterSeats(state) {
 }
 
 /* ── 5 Lá Bài Cộng Đồng ── */
+let lastCommunityCount = 0;
 function renderCommunityCards(cards) {
   const row = $('community-cards-row');
+  const prevCount = lastCommunityCount;
   row.innerHTML = '';
   for (let i = 0; i < 5; i++) {
     if (i < cards.length) {
-      row.appendChild(createCardEl(cards[i], 'md'));
+      const el = createCardEl(cards[i], 'md');
+      if (cards.length > prevCount && i >= prevCount && prevCount > 0) {
+        el.animate([
+          { opacity: 0, transform: 'scale(0.8) rotateY(90deg)' },
+          { opacity: 1, transform: 'scale(1) rotateY(0deg)' }
+        ], { duration: 240, delay: (i - prevCount) * 55, easing: 'ease-out' });
+      }
+      row.appendChild(el);
     } else {
       const slot = document.createElement('div');
       slot.className = 'card-slot';
       row.appendChild(slot);
     }
   }
+  lastCommunityCount = cards.length;
 }
 
 /* ── Khay Chip Pool Ở Giữa Bàn ── */
@@ -706,6 +719,7 @@ function renderCenterChipPool(state) {
 }
 
 /* ── Khu Vực Của Tôi (My Station) ── */
+let lastGangRoundKey = null;
 function renderMyStation(state) {
   const me = state.players.find((p) => p.id === myId);
   if (!me) return;
@@ -713,10 +727,24 @@ function renderMyStation(state) {
   $('my-avatar-disp').textContent = me.avatar || '🕶️';
   $('my-name-disp').textContent = `${me.name} (Tôi)`;
 
+  const currentRoundKey = `${state.heistNumber}:${state.phase}`;
+  const isNewDeal = state.phase === 'PRE_FLOP' && lastGangRoundKey !== currentRoundKey;
+  if (isNewDeal) {
+    lastGangRoundKey = currentRoundKey;
+    playCardSound();
+  }
+
   const cardsRow = $('my-cards-row');
   cardsRow.innerHTML = '';
-  (me.privateCards || []).forEach((c) => {
-    cardsRow.appendChild(c ? createCardEl(c, 'lg') : createCardBackEl('lg'));
+  (me.privateCards || []).forEach((c, index) => {
+    const el = c ? createCardEl(c, 'lg') : createCardBackEl('lg');
+    cardsRow.appendChild(el);
+    if (isNewDeal) {
+      el.animate([
+        { opacity: 0, transform: 'translateY(-28px) scale(0.9) rotate(-3deg)' },
+        { opacity: 1, transform: 'none' }
+      ], { duration: 250, delay: index * 45, easing: 'cubic-bezier(0.2, 0.85, 0.3, 1.1)' });
+    }
   });
 
   renderHandHelperHint(me.privateCards, state.communityCards, me.extraNote);
@@ -1119,6 +1147,7 @@ function createCardEl(card, size = 'md') {
 
   const div = document.createElement('div');
   div.className = `playing-card card-${size}${isRed ? ' red' : ''}`;
+  if (GameArt.cardInfo(card)) return GameArt.paintCard(div, card);
   div.innerHTML = `
     <div class="card-corner top">
       <span class="c-val">${valStr}</span>
@@ -1136,12 +1165,9 @@ function createCardEl(card, size = 'md') {
 // Mặt sau lá bài hoàng gia The Gang
 function createCardBackEl(size = 'md') {
   const div = document.createElement('div');
-  div.className = `playing-card card-${size} card-back`;
-  div.innerHTML = `
-    <div class="card-back-ornament">
-      <span class="card-back-emblem">🏦</span>
-    </div>
-  `;
+  div.className = `playing-card card-${size} card-back has-card-art`;
+  div.setAttribute('aria-label', 'Mặt sau lá bài');
+  div.innerHTML = GameArt.backMarkup();
   return div;
 }
 

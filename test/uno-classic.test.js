@@ -36,6 +36,12 @@ test('UNO deck is exactly 112 cards with unique ids and 7-card deal', () => {
   assert.equal(new Set([...Object.values(match.hands).flat(), ...match.drawPile, ...match.discardPile].map(card => card.id)).size, 112);
 });
 
+test('an opening Draw Two deals two cards to the next seat, keeping the starter at seven', () => {
+  const match = createMatch({ playerIds: ['host', 'friend'], rng: seededRandom(2) });
+  assert.equal(match.discardPile.at(-1).type, 'draw2');
+  assert.deepEqual([match.hands.host.length, match.hands.friend.length], [7, 9]);
+});
+
 test('UNO legal card, invalid action and no stacking penalty preserve server rules', () => {
   const match = fixedMatch();
   match.hands.p1 = [
@@ -116,6 +122,10 @@ function request(client, event, payload) {
   return new Promise((resolve, reject) => client.timeout(4000).emit(event, payload, (err, value) => err ? reject(err) : resolve(value)));
 }
 
+function seededRandom(seed) {
+  return () => { seed = (seed * 1664525 + 1013904223) >>> 0; return seed / 4294967296; };
+}
+
 test('UNO sockets keep private hands, stale/duplicate actions safe, and two rooms isolated', async t => {
   const game = createGameServer();
   await new Promise(resolve => game.server.listen(0, '127.0.0.1', resolve));
@@ -132,9 +142,12 @@ test('UNO sockets keep private hands, stale/duplicate actions safe, and two room
   await waitFor(host, 'game_state', state => state.gameId === 'uno' && state.players.every(player => player.ready));
   host.emit('start_game', { roomCode: first.roomCode });
   const started = await waitFor(host, 'game_state', state => state.gameId === 'uno' && state.phase === 'PLAYING');
-  assert.equal(started.myHand.length, started.topCard.type === 'draw2' ? 9 : 7, 'Opening Draw Two gives the first player two extra cards');
+  const starterCount = started.players.find(player => player.id === first.playerId).cardCount;
+  const nextSeatCount = started.players.find(player => player.id !== first.playerId).cardCount;
+  assert.equal(started.myHand.length, starterCount, 'the private hand matches its public card count');
+  assert.deepEqual([starterCount, nextSeatCount], started.topCard.type === 'draw2' ? [7, 9] : [7, 7],
+    'an opening Draw Two gives two cards to the next seat, while other openings leave both hands at seven');
   assert.equal('myHand' in started.players[1], false);
-  assert.equal(started.players[1].cardCount, 7);
   const actor = started.currentPlayerId === first.playerId ? host : friend;
   let activeState = started;
   if (!started.currentColor) {
@@ -160,9 +173,17 @@ test('UNO snapshot restores a normal turn and an open +4 reaction window', async
   const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'gang-m2-uno-restart-'));
   const storageFile = path.join(directory, 'rooms.json');
   let game = createGameServer({ storageFile });
+  let closed = false;
+  const closeGame = async () => { if (!closed) { closed = true; await game.close(); } };
+  const clients = [];
+  t.after(async () => {
+    clients.forEach(client => client.disconnect());
+    await closeGame();
+    assert.ok(path.resolve(directory).startsWith(path.resolve(os.tmpdir()) + path.sep));
+    fs.rmSync(directory, { recursive: true, force: true });
+  });
   await new Promise(resolve => game.server.listen(0, '127.0.0.1', resolve));
   let url = `http://127.0.0.1:${game.server.address().port}`;
-  const clients = [];
   const connect = async currentUrl => { const client = io(currentUrl, { transports: ['websocket'], forceNew: true, reconnection: false }); await waitFor(client, 'connect'); clients.push(client); return client; };
   const host = await connect(url); const friend = await connect(url);
   const credentials = await request(host, 'room:create', { gameId: 'uno', playerName: 'Restart Host', config: { maxPlayers: 2 } });
@@ -173,9 +194,10 @@ test('UNO snapshot restores a normal turn and an open +4 reaction window', async
   const started = await waitFor(host, 'game_state', state => state.gameId === 'uno' && state.phase === 'PLAYING');
   game.gm.flush();
   clients.forEach(client => client.disconnect());
-  await game.close();
+  await closeGame();
 
   game = createGameServer({ storageFile });
+  closed = false;
   await new Promise(resolve => game.server.listen(0, '127.0.0.1', resolve));
   url = `http://127.0.0.1:${game.server.address().port}`;
   clients.length = 0;
@@ -195,18 +217,19 @@ test('UNO snapshot restores a normal turn and an open +4 reaction window', async
   match.hands[hostId] = [{ id: 'wild4-0', color: null, type: 'wild4', value: null }];
   match.hands[friendId] = [{ id: 'green-1-a', color: 'green', type: 'number', value: 1 }];
   match.discardPile = [{ id: 'red-5-a', color: 'red', type: 'number', value: 5 }]; match.drawPile = createDeck().filter(card => !['wild4-0', 'green-1-a', 'red-5-a'].includes(card.id));
-  match.currentColor = 'red'; match.currentPlayerId = hostId; match.reactionWindow = null; match.unoWindow = null; match.pendingDraw = 0; match.revision += 1;
+  match.currentColor = 'red'; match.openingColorPending = false; match.currentPlayerId = hostId; match.reactionWindow = null; match.unoWindow = null; match.pendingDraw = 0; match.revision += 1;
   game.gm.broadcast(credentials.roomCode); game.gm.flush();
   const reactionResult = await request(resumedHost, 'game:action', { roomCode: credentials.roomCode, matchId: match.matchId, expectedRevision: match.revision, actionId: 'restart-reaction', type: 'play_card', payload: { cardId: 'wild4-0', chosenColor: 'blue' } });
   assert.equal(reactionResult.ok, true);
   const reactionMatchId = match.matchId; const reactionDeadline = match.reactionWindow.deadlineAt;
-  clients.forEach(client => client.disconnect()); await game.close();
+  clients.forEach(client => client.disconnect()); await closeGame();
 
   game = createGameServer({ storageFile });
+  closed = false;
   await new Promise(resolve => game.server.listen(0, '127.0.0.1', resolve));
   url = `http://127.0.0.1:${game.server.address().port}`;
   const afterRestart = io(url, { transports: ['websocket'], forceNew: true, reconnection: false });
-  t.after(async () => { afterRestart.disconnect(); await game.close(); fs.rmSync(directory, { recursive: true, force: true }); });
+  clients.push(afterRestart);
   await waitFor(afterRestart, 'connect');
   const stateAfterReactionRestart = waitFor(afterRestart, 'game_state', state => state.gameId === 'uno' && state.phase === 'PLAYING');
   await request(afterRestart, 'room:resume', credentials);

@@ -1,19 +1,34 @@
 # Chill & Thrill — Cổng game LAN
 
-Hai chế độ dùng chung một máy chủ LAN, hồ sơ và ví chip:
+Hai chế độ dùng chung một máy chủ LAN, hồ sơ và ví chip/coin/gem:
 
 - **Giải trí:** The Gang, UNO và BANG!.
-- **Kịch tính:** Tiến lên, Poker, Sâm lốc và Phỏm, dùng chip ảo trên server local.
+- **Kịch tính:** Poker dùng chip; Tiến lên, Sâm lốc và Phỏm dùng coin ảo trên server local.
 
 Mở địa chỉ máy chủ để chọn chế độ, game và tạo/vào phòng. UNO có hai biến thể: **112 lá, 2–4 người** từ M2 cũ và **108 lá, 2–6 người** từ bản đã có trong thư mục mới. Chọn biến thể tại trang chi tiết UNO.
 
 Thư mục làm việc: `C:\Users\PC\Documents\chill-and-thrill`. Runtime: **Node.js 24 trở lên**. Hướng dẫn và số liệu The Gang bên dưới áp dụng riêng cho game đó.
 
-Hồ sơ và chip dùng chung `data/chill-and-thrill.sqlite`; `GANG_DATABASE_FILE` hoặc alias `GANG_DB_FILE` chọn vị trí khác. Schema v2 tự nâng cấp từ v1; Poker ghi state bàn và ledger trong cùng transaction SQLite, còn JSON là bản xuất tương thích. Các game khác tiếp tục dùng JSON riêng. Khi sao lưu, dừng server và giữ cả SQLite lẫn JSON trong thư mục `data`. Xem [báo cáo hợp nhất M0–M3](docs/migrations/M0-M3-merge.md) và [bộ prompt đã cập nhật](docs/prompts/README.md).
+Hồ sơ, số dư và ledger dùng chung `data/chill-and-thrill.sqlite`; `GANG_DATABASE_FILE` hoặc alias `GANG_DB_FILE` chọn vị trí khác. Schema hiện tại là v4, tự nâng cấp dữ liệu cũ khi mở bằng `ProfileStore`. Poker, Tiến lên, Sâm lốc và Phỏm ghi snapshot bàn cùng ledger trong transaction SQLite; JSON của các game này là bản xuất tương thích. The Gang, UNO và BANG! tiếp tục lưu phòng bằng JSON. Gem đổi hai chiều với coin theo tỷ lệ **10.000.000 coin = 1 gem**; chip không tham gia quy đổi. Xem [hợp nhất M0–M3](docs/migrations/M0-M3-merge.md) và [nâng cấp tiền tệ](docs/migrations/currencies-v3.md).
+
+Bản hiện tại có sảnh nhóm để chuyển game cùng nhau, giải đấu và bảng xếp hạng, xem bàn với vai trò khán giả, luyện tập, hướng dẫn theo game, lịch sử giao dịch và cảnh báo lưu trữ. Launcher Windows hỗ trợ khởi động/dừng an toàn, QR LAN và backup/restore; hướng dẫn nằm trong [runbook launcher](docs/runbooks/launcher-c06.md) và [runbook backup](docs/runbooks/backup-restore-c04.md). Backup chứa SQLite và các file phòng; restore tạo thư mục mới để kiểm tra.
 
 Kiểm tra toàn bộ bằng `npm test`; kiểm tra bàn The Gang bằng `npm run test:browser`; kiểm tra đi từ portal sang các bàn bằng `npm run test:portal-browser`.
 
-Các lỗi trong review M0–M6 đã được xử lý: bảo toàn chip khi phòng quá hạn/crash, rời bàn sau ván, phiên hồ sơ, QR có mật khẩu và trang `/missions`. Chạy `npm run test:review-browser` để kiểm tra các luồng UI này; chi tiết và kết quả nằm trong [báo cáo sửa lỗi](docs/reviews/M0-M6-fixes-20261005.md).
+Các lỗi vòng review mới nhất R01–R06 đã được sửa: chuyển game với socket mới, chuyển phiên vào The Gang/UNO 112, hủy ván trong giải đấu, cập nhật khán giả khi tất cả người chơi mất kết nối, thời hạn sảnh nhóm và thanh điều hướng. Chi tiết nằm trong [báo cáo sửa R01–R06](docs/reviews/implementation-R01-R06-20261006.md). Các báo cáo M0–M6/A/B/C/V01 trong `docs/reviews/` giữ số liệu tại từng mốc.
+
+## Cấu trúc source
+
+| Thư mục | Nội dung |
+|---|---|
+| `src/` | HTTP/Socket.IO, engine và hạ tầng dùng chung trong `src/platform/` |
+| `public/` | Trang game/portal, CSS, client JS và tài nguyên ảnh đã đóng gói |
+| `launcher/` | Giao diện điều khiển máy chủ Windows |
+| `scripts/` | Launcher, backup, nhập ảnh và các kiểm tra trình duyệt |
+| `test/` | Kiểm thử luật, transaction, khôi phục và tích hợp API/socket |
+| `docs/` | Luật, thiết kế, migration, runbook và báo cáo review |
+
+`data/`, `backups/`, `test-results/`, `scratch/`, `.tmp-*` và `.migration-backups/` là dữ liệu cục bộ, không đưa vào Git. Không xóa dữ liệu người chơi để dọn source. Các fixture nhóm/giải đấu dùng `scripts/helpers/temporary-directory.js` để tạo dữ liệu trong thư mục tạm của hệ điều hành và chỉ dọn thư mục do chính tiến trình test tạo. Khi sửa phòng, hồ sơ hoặc UNO, đọc [hướng dẫn hợp nhất](docs/migrations/M0-M3-merge.md) trước; giữ hai biến thể UNO, token/link cũ và một `ProfileStore` duy nhất.
 
 ---
 
@@ -23,10 +38,12 @@ Các lỗi trong review M0–M6 đã được xử lý: bảo toàn chip khi ph�
 Mở PowerShell trong thư mục chương trình và chạy:
 ```powershell
 cd C:\Users\PC\Documents\chill-and-thrill
-npm install
+npm ci
 ```
 
 ### 2. Khởi động máy chủ
+Trên Windows, có thể nhấp đúp `launch-chill-and-thrill.cmd` để mở launcher. Cách chạy trực tiếp:
+
 ```bash
 npm start
 ```
@@ -127,6 +144,20 @@ Kiểm tra giao diện bằng Chrome cài trên máy (chạy ẩn, không dùng 
 ```powershell
 npm run test:browser
 ```
+
+Các kiểm tra thường dùng sau khi sửa portal:
+
+| Lệnh | Luồng kiểm tra |
+|---|---|
+| `npm run test:portal-browser` | Tạo/vào phòng, hai UNO và chuyển sang các bàn |
+| `npm run test:rereview-fixes` | Hồi quy R01–R05, hủy ván, rollback và khôi phục |
+| `npm run test:group-lobby-browser` | Hai thành viên chuyển qua nhiều game với socket mới |
+| `npm run test:tournament-product` | Giải đấu, kết quả, bảng xếp hạng và restart |
+| `npm run test:spectator-browser` | Vai trò khán giả và trạng thái công khai của tám loại bàn |
+| `npm run test:currency-wallet` | Ví/quy đổi và thử lại sau khi mất phản hồi |
+| `npm run test:portal-navigation` | Menu, hồ sơ và ví tại chín độ rộng màn hình |
+
+Các test dùng bộ nhớ hoặc database/phòng tạm. Không trỏ fixture vào `data/` hay database của người chơi.
 
 Nếu dùng Edge: `$env:GANG_BROWSER_CHANNEL='msedge'` trước khi chạy. Ảnh kiểm tra màn hình máy tính, điện thoại dọc/ngang và bàn 6 người được lưu trong `test-results/`.
 

@@ -15,7 +15,7 @@ Ngày chốt: 05/10/2026. Đây là luật bàn chip ảo local của Chill & Th
 - Từ 3 người: SB ở trái button, BB ở trái SB, preflop bắt đầu ở trái BB; flop/turn/river bắt đầu ở trái button.
 - Heads-up: button cũng là SB, người còn lại là BB; preflop button hành động trước, các vòng sau BB hành động trước.
 - Chia hai lá riêng; lần lượt preflop, flop (3 lá), turn (1), river (1), showdown. Lá riêng chỉ được gửi cho đúng ghế. Khi mọi người còn lại all-in hoặc không còn action hợp lệ, server tự lật các lá chung còn lại.
-- Không có turn timer ở v1. Nếu người đang trong hand mất kết nối, hand tạm dừng để giữ bài/stack; không auto call hoặc raise.
+- Mỗi lượt có 30 giây theo đồng hồ server. Trong reconnect grace, hand tạm dừng và giữ phần thời gian còn lại; sau grace server chỉ check hoặc fold theo mức cược hiện hành, không tự call, bet hay raise.
 
 ## Action và mức cược
 
@@ -42,6 +42,7 @@ Ví dụ: cược 100, A call; hai all-in ngắn lần lượt lên 130 và 160.
 ## An toàn, reconnect và kết thúc
 
 - Server là nguồn sự thật của deck, bài riêng, lượt, mức cược, minimum raise, pot, người thắng và delta stack. Một action cần revision + action ID để chặn request cũ/trùng.
-- State bàn (deck, lá riêng, đóng góp, stack, action đã xử lý, button và street) được ghi vào SQLite trong cùng transaction với thay đổi chip; companion JSON là bản xuất tương thích. Khi restart, SQLite được ưu tiên, ghế trở lại mất kết nối và hand đang chạy tạm dừng. Không dùng việc socket đóng để tự hoàn chip.
-- Khoản buy-in/cash-out được ghi theo idempotency key trong SQLite. Nếu hand bị bỏ dở, mọi người trong hand đều mất kết nối quá 12 giờ, server hủy hand, hoàn mọi đóng góp (kể cả của người fold) về stack rồi cash-out từng ghế trong một transaction. Hand bị hủy không tính nhiệm vụ. Nếu hand đã chốt, server cash-out stack sau kết quả và không hoàn lại pot lần nữa. Dấu đóng bàn ngăn JSON cũ phục hồi lại khoản đã thanh toán.
+- State bàn (deck, lá riêng, đóng góp, stack, action đã xử lý, button, street và deadline reconnect) được ghi vào SQLite trong cùng transaction với thay đổi chip; companion JSON là bản xuất tương thích. Khi restart, SQLite được ưu tiên và ghế trở lại mất kết nối. Không dùng việc socket đóng để tự hoàn chip.
+- Mỗi người có tối đa 120 giây để khôi phục; restart lặp lại vẫn giữ deadline ban đầu. Hand tạm dừng trong grace. Sau đó, khi tới lượt ghế vắng, server check nếu không có cược phải theo hoặc fold nếu cần theo cược. Ghế all-in không bị fold, khoản góp và pot của họ vẫn được giữ tới showdown.
+- Khoản buy-in/cash-out được ghi theo idempotency key trong SQLite. Quy tắc legacy 12 giờ chỉ áp dụng bàn lưu trước reconnect policy 2: server hoàn đóng góp về stack rồi cash-out trong một transaction. Hand policy 2 không bị hủy/hoàn tiền chỉ vì mất kết nối. Nếu hand đã chốt, cash-out dùng stack sau kết quả và không hoàn pot lần nữa. Dấu đóng bàn ngăn JSON cũ phục hồi khoản đã thanh toán.
 - Rời trong hand chỉ đặt lịch rời. Sau khi chốt đầy đủ kết quả/nhiệm vụ, server cash-out, gỡ ghế và báo `room_left` để UI về sảnh. Không có nút “hủy hand” giữa ván đang chơi.

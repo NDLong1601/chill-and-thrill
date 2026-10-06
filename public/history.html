@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#18223a">
+  <title>Lịch sử ví và ván chơi · Chill &amp; Thrill</title>
+  <link rel="stylesheet" href="/css/history.css">
+</head>
+<body>
+  <main class="history-shell">
+    <header class="history-top">
+      <a href="/profile">← Hồ sơ</a>
+      <a href="/" aria-label="Về Chill &amp; Thrill">Chill &amp; Thrill</a>
+    </header>
+    <section class="history-hero">
+      <p class="eyebrow">HỒ SƠ LOCAL</p>
+      <h1>Lịch sử ví và ván chơi</h1>
+      <p>Chip, coin, gem và kết quả các ván có hồ sơ của bạn. Tiền chuyển vào khoản giữ được ghi riêng để không tính nhầm thành lời hoặc lỗ.</p>
+    </section>
+    <section class="history-panel" aria-labelledby="filter-title">
+      <h2 id="filter-title">Tìm lịch sử</h2>
+      <form id="history-filters" class="history-filters">
+        <label>Game
+          <select name="gameId">
+            <option value="">Tất cả game</option>
+            <option value="the-gang">The Gang</option>
+            <option value="uno">UNO</option>
+            <option value="tien-len">Tiến lên</option>
+            <option value="poker">Poker</option>
+            <option value="sam-loc">Sâm lốc</option>
+            <option value="phom">Phỏm</option>
+            <option value="bang">BANG!</option>
+          </select>
+        </label>
+        <label>Từ ngày (giờ Việt Nam)<input name="from" type="date"></label>
+        <label>Đến ngày (giờ Việt Nam)<input name="to" type="date"></label>
+        <label>Mã phòng<input name="roomCode" maxlength="64" autocomplete="off" placeholder="Ví dụ: ABCD"></label>
+        <label>Nhóm
+          <select name="group">
+            <option value="">Tất cả nhóm</option>
+            <option value="match">Kết quả ván</option>
+            <option value="hold">Giữ tiền</option>
+            <option value="refund">Hoàn tiền</option>
+            <option value="settlement">Thanh toán / rút Poker</option>
+            <option value="exchange">Quy đổi</option>
+            <option value="reward">Thưởng nhiệm vụ</option>
+            <option value="grant">Số dư khởi đầu</option>
+            <option value="other">Khác</option>
+          </select>
+        </label>
+        <label>Đơn vị tiền
+          <select name="currency">
+            <option value="">Tất cả</option>
+            <option value="chip">Chip</option>
+            <option value="coin">Coin</option>
+            <option value="gem">Gem</option>
+          </select>
+        </label>
+        <div class="filter-actions"><button type="submit">Tìm lịch sử</button><button id="history-reset" class="quiet-button" type="button">Xóa bộ lọc</button></div>
+      </form>
+      <p class="history-hint">Ngày được tính theo múi giờ Asia/Ho_Chi_Minh. Mỗi lần tìm giới hạn 366 ngày; lịch sử tải theo từng trang.</p>
+    </section>
+    <section class="history-panel results-panel" aria-labelledby="results-title">
+      <div class="results-head"><h2 id="results-title">Hoạt động gần đây</h2><span id="history-count" class="count"></span></div>
+      <p id="history-status" class="history-status" role="status" aria-live="polite">Đang tải lịch sử…</p>
+      <ol id="history-list" class="history-list" aria-live="polite"></ol>
+      <button id="history-more" class="more-button" type="button" hidden>Tải thêm</button>
+      <p id="history-empty" class="empty-state" hidden>Chưa có kết quả phù hợp với bộ lọc này.</p>
+      <p id="history-auth" class="auth-state" hidden>Cần tạo hoặc khôi phục hồ sơ để xem lịch sử. <a href="/profile">Mở trang hồ sơ</a>.</p>
+    </section>
+    <footer>Biên nhận chỉ chứa biến động của ví và kết quả của hồ sơ đang đăng nhập. Dữ liệu bài riêng của ván không được gửi vào trang lịch sử.</footer>
+  </main>
+  <script src="/js/history.js"></script>
+</body>
+</html>

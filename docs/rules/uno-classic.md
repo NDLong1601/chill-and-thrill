@@ -48,6 +48,12 @@ M2 dùng một ván có người hết bài làm đơn vị kết quả. Không 
 
 ## Đồng hồ, reconnect và khôi phục
 
-Deadline phản ứng là thời gian tuyệt đối do server tạo, không tin đồng hồ client. Disconnect không pause đồng hồ. Khi server restart, deadline được đọc lại từ snapshot; nếu đã quá hạn, server tự xử lý trước khi phát trạng thái tiếp theo. Resume khôi phục đúng `matchId`, revision, lượt, hướng, màu, bài riêng, phạt và cửa sổ phản ứng còn lại.
+Ghế mất kết nối có 120 giây để khôi phục. Hạn này được lưu cùng snapshot và không được gia hạn thêm khi server khởi động lại lần nữa. Bàn tạm dừng trong grace; sau đó khi ghế vắng đến lượt, server tự chọn màu đỏ cho Wild mở đầu, rút phạt đang chờ, hoặc rút rồi bỏ lượt theo trạng thái hợp lệ. Không tự đánh một lá bài kín thay người chơi.
+
+Deadline phản ứng là thời gian tuyệt đối do server tạo, không tin đồng hồ client. Cửa sổ gọi/bắt UNO 5 giây và phản đối +4 15 giây vẫn tiếp tục chạy trong grace và khi server restart. Nếu hết hạn, server tự đóng cửa sổ hoặc xử lý +4 theo luật trước khi phát trạng thái tiếp theo. Resume khôi phục đúng `matchId`, revision, lượt, hướng, màu, bài riêng, phạt và deadline phản ứng.
 
 Các action phải có `actionId`, `matchId` và `expectedRevision`. Action trùng trả `DUPLICATE_ACTION`; revision cũ trả `STALE_REVISION`; action ngoài lượt/giai đoạn không đổi state.
+
+## Rời phòng
+
+Người chơi có thể chọn **Rời sau ván** để xếp lịch rời ngay cả khi bàn đang tạm dừng; ghế và phiên chỉ được gỡ khi nhận `room_left` sau kết quả. Nút **Hủy ván & rời** giữ hành vi hiện có: hủy ván, xóa cửa sổ phản ứng, đưa người còn lại về phòng chờ và không ghi thắng/thưởng. Mất kết nối tự nó không hủy ván. Sau khi rời, người chơi dùng cùng hồ sơ để tạo/vào game khác.

@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>B06 table preferences harness</title>
+  <link rel="stylesheet" href="/css/table-preferences.css">
+  <style>
+    * { box-sizing: border-box; }
+    body { margin: 0; padding: 12px; font: 16px/1.45 system-ui, sans-serif; color: #17211b; background: #f5f4ef; }
+    #table { width: min(100%, 58rem); margin: 0 auto; padding: 12px; background: white; border: 1px solid #53615a; border-radius: 12px; }
+    #players { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin: 12px 0; }
+    .player { padding: 8px; border: 1px solid #718078; border-radius: 8px; }
+    .player-name { font-weight: 700; }
+    .table-preferences-hand { display: flex; gap: 8px; max-width: 100%; overflow-x: auto; }
+    .uno-card, .tl-card, .table-card, .playing-card, .bang-card { flex: 0 0 auto; display: grid; place-items: center; border: 1px solid #223; border-radius: 8px; background: #fff; color: #17211b; }
+    .table-preferences-hand .uno-card { min-width: 72px; height: 104px; }
+    .table-preferences-hand .tl-card, .table-preferences-hand .table-card { min-width: 64px; height: 88px; }
+    .table-preferences-hand .playing-card { min-width: 66px; height: 90px; }
+    .table-preferences-hand .bang-card { width: 116px; min-height: 96px; }
+    #action { min-height: 44px; margin-top: 12px; padding: 8px 14px; font: inherit; }
+    #animated-test { animation: demoPulse 1s infinite; transition: opacity 1s; }
+    @keyframes demoPulse { from { opacity: .5; } to { opacity: 1; } }
+  </style>
+</head>
+<body>
+  <main id="table">
+    <header><h1>UNO · bàn thử B06</h1><p id="animated-test">Nội dung bàn minh họa</p></header>
+    <div id="players">
+      <article class="player" data-player-id="seat-me"><span class="player-name">Bạn</span><small>Đang kết nối</small></article>
+      <article class="player" data-player-id="seat-other"><span class="player-name">Ngọc</span><small>Đang kết nối</small></article>
+    </div>
+    <div class="table-preferences-hand hand" id="hand" aria-label="Bài minh họa">
+      <button class="uno-card" type="button">UNO</button>
+      <button class="uno-card" type="button"><span class="uno-card-value">7</span><small>Đỏ</small></button>
+      <button class="tl-card" type="button">A♥</button>
+      <span class="table-card">9♠</span>
+      <span class="playing-card">K♦</span>
+      <button class="bang-card" type="button">BANG! · Phản ứng</button>
+      <button class="uno-card" type="button">+2</button>
+      <button class="uno-card" type="button">4</button>
+      <button class="uno-card" type="button">5</button>
+      <button class="uno-card" type="button">6</button>
+      <button class="uno-card" type="button">8</button>
+      <button class="uno-card" type="button">9</button>
+    </div>
+    <button id="action" type="button">Thao tác hợp lệ</button>
+  </main>
+  <script src="/js/table-preferences.js"></script>
+  <script>
+    window.preferenceAudio = { contexts: 0, tones: 0 };
+    function makeAudioContext() {
+      window.preferenceAudio.contexts += 1;
+      return {
+        state: 'running', currentTime: 0, destination: {},
+        createOscillator() {
+          return { type: '', frequency: { setValueAtTime() {} }, connect() {}, start() { window.preferenceAudio.tones += 1; }, stop() {} };
+        },
+        createGain() {
+          return { gain: { setValueAtTime() {}, exponentialRampToValueAtTime() {} }, connect() {} };
+        },
+      };
+    }
+    window.preferences = window.TablePreferences.createTablePreferences({
+      root: '#table', before: '#players', audioContextFactory: makeAudioContext,
+    });
+    window.updateTableState = state => window.preferences.updatePublicState(state);
+    window.makeUnoState = (owner, matchId = 'browser-match') => ({
+      gameId: 'uno', variant: 'classic-local-v1', phase: 'PLAYING', matchId,
+      myId: 'seat-me', currentPlayerId: owner,
+      players: [{ id: 'seat-me', name: 'Bạn' }, { id: 'seat-other', name: 'Ngọc' }],
+      availableActions: owner === 'seat-me' ? [{ type: 'draw_card' }] : [],
+      myHand: [{ id: 'private-only-for-me' }],
+    });
+    window.updateTableState(window.makeUnoState('seat-other'));
+  </script>
+</body>
+</html>

@@ -25,9 +25,9 @@ test('Tiến lên is served through the shared socket gateway and reserves every
   host.emit('set_ready', { roomCode: created.roomCode, ready: true }); guest.emit('set_ready', { roomCode: created.roomCode, ready: true });
   await waitState(host, state => state.players.every(player => player.ready)); host.emit('start_game', { roomCode: created.roomCode });
   const started = await waitState(host, state => state.gameId === 'tien-len' && state.phase === 'TURN'); const guestState = await waitState(guest, state => state.gameId === 'tien-len' && state.phase === 'TURN');
-  assert.equal(started.myHand.length, 13); assert.equal(JSON.stringify(started).includes(guestState.myHand[0].id), false); assert.equal(started.stake, 100);
+  assert.equal(started.myHand.length, 13); assert.equal(JSON.stringify(started).includes(JSON.stringify(guestState.myHand[0].id)), false); assert.equal(started.stake, 100);
   assert.ok(started.players.every(player => player.handCount === 13)); const room = game.gm.tienLen.rooms.get(created.roomCode);
-  assert.ok(room.reservations.every(item => item.amount === 100)); assert.ok(room.players.every(player => game.gm.profiles.publicProfile(player.profileId).wallet.reserved === 100));
+  assert.ok(room.reservations.every(item => item.amount === 100)); assert.ok(room.players.every(player => game.gm.profiles.publicProfile(player.profileId).balances.coin.reserved === 100));
   const page = await fetch(`${url}/tien-len`); assert.equal(page.status, 200); assert.match(await page.text(), /Tiến lên miền Nam/);
   const qr = await fetch(`${url}/api/rooms/${created.roomCode}/qr`); assert.equal(qr.status, 200); assert.match(await qr.text(), /<svg/);
 });

@@ -82,7 +82,8 @@ test('imported UNO results and historical mission claims commit once in the shar
     assert.equal(claim.status, 200);
   }
   const result = await request(host, 'profile_status');
-  assert.equal(result.profile.wallet.available, 1100);
+  assert.equal(result.profile.balances.coin.available, 1100);
+  assert.equal(result.profile.wallet.available, 1000);
   assert.equal(game.gm.profiles.db.prepare('SELECT COUNT(*) AS count FROM mission_claims').get().count, 1);
   assert.equal(game.gm.profiles.db.prepare('SELECT COUNT(*) AS count FROM matches').get().count, 1);
 });

@@ -52,7 +52,7 @@ function fitTableViewport() {
     gameScreen.classList.toggle('table-compact', height <= 620 || innerWidth <= 1100);
     const bottomInset = Math.max(0, parseFloat(getComputedStyle(station).paddingBottom) - 4);
     gameScreen.classList.toggle('table-short', height - bottomInset <= 315);
-    gameScreen.scrollTop = 0;
+    if (!MobileUI.isEditing()) gameScreen.scrollTop = 0;
   });
 }
 window.addEventListener('resize', fitTableViewport);
@@ -73,6 +73,7 @@ function updateFullscreenButton() {
 }
 async function enterTableFullscreen(automatic = false) {
   fullscreenAttempted = true;
+  if (MobileUI.isStandalone()) return;
   const element = document.documentElement;
   const request = element.requestFullscreen || element.webkitRequestFullscreen || element.mozRequestFullScreen || element.msRequestFullscreen;
   if (!request) {
@@ -111,9 +112,6 @@ document.addEventListener('fullscreenchange', updateFullscreenButton);
 document.addEventListener('webkitfullscreenchange', updateFullscreenButton);
 document.addEventListener('mozfullscreenchange', updateFullscreenButton);
 document.addEventListener('MSFullscreenChange', updateFullscreenButton);
-gameScreen.addEventListener('click', event => {
-  if (touchDevice && !fullscreenAttempted && !fullscreenElement() && !event.target.closest('#btn-fullscreen')) enterTableFullscreen(true);
-}, { capture: true });
 document.addEventListener('click', event => {
   if (event.target.closest('[data-close="modal-ios-fullscreen"]')) $('modal-ios-fullscreen')?.classList.add('hidden');
 });

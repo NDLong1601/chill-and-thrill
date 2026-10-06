@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#102421">
+  <title>Xem bàn · Chill &amp; Thrill</title>
+  <link rel="stylesheet" href="/css/spectator.css">
+</head>
+<body>
+  <main class="spectator-shell">
+    <header class="spectator-header">
+      <a class="brand" href="/" aria-label="Về Chill & Thrill">C<span>&amp;</span>T</a>
+      <div>
+        <p class="eyebrow">CHILL &amp; THRILL</p>
+        <h1>Xem bàn</h1>
+      </div>
+      <span class="read-only-badge">Chỉ xem</span>
+    </header>
+
+    <section class="access-card" id="access-card">
+      <p class="eyebrow">PHÒNG <span id="room-code-label">—</span></p>
+      <h2>Tham gia kênh khán giả</h2>
+      <p class="muted">Bạn có thể theo dõi trạng thái công khai của bàn. Bài kín và thông tin chưa được luật công khai sẽ không xuất hiện.</p>
+      <form id="spectator-form">
+        <label for="room-password">Mật khẩu phòng <span>(nếu có)</span></label>
+        <div class="access-row">
+          <input id="room-password" name="password" type="password" autocomplete="current-password" placeholder="Nhập mật khẩu nếu được yêu cầu">
+          <button type="submit">Xem bàn</button>
+        </div>
+      </form>
+      <p id="connection-message" class="status-message" role="status" aria-live="polite">Kết nối này không dùng hồ sơ hay ghế người chơi.</p>
+    </section>
+
+    <section class="watch-view" id="watch-view" hidden>
+      <div class="table-heading">
+        <div>
+          <p class="eyebrow" id="game-label">BÀN CÔNG KHAI</p>
+          <h2 id="table-title">Đang tải…</h2>
+        </div>
+        <button type="button" class="quiet-button" id="leave-button">Rời chế độ xem</button>
+      </div>
+      <p class="policy-note" id="policy-note">Bạn đang xem ở chế độ chỉ đọc.</p>
+      <div class="board-grid">
+        <section class="panel">
+          <div class="panel-heading"><h3>Người chơi</h3><span id="seat-count">0 ghế</span></div>
+          <ol id="player-list" class="player-list"></ol>
+        </section>
+        <section class="panel board-panel">
+          <div class="panel-heading"><h3>Trạng thái bàn</h3><span class="phase-pill" id="phase-label">—</span></div>
+          <dl id="board-details" class="board-details"></dl>
+          <div id="public-cards" class="public-cards" aria-label="Các lá bài công khai"></div>
+        </section>
+      </div>
+      <p id="live-message" class="status-message" role="status" aria-live="polite">Đang chờ trạng thái công khai…</p>
+    </section>
+  </main>
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="/js/spectator.js" defer></script>
+</body>
+</html>

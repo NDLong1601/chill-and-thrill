@@ -1,0 +1,16 @@
+.storage-status[hidden] { display: none; }
+.storage-status {
+  margin: 0 0 16px;
+  padding: 11px 14px;
+  border: 1px solid #e3b85e;
+  border-radius: 12px;
+  color: #3d2d0b;
+  background: #fff7df;
+  font-size: .94rem;
+  line-height: 1.45;
+}
+.storage-status[data-level="blocked"] {
+  border-color: #de7b69;
+  color: #581d19;
+  background: #fff0ed;
+}

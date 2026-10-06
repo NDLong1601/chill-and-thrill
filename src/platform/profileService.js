@@ -68,12 +68,21 @@ class ProfileService {
   history(id) {
     return this.profiles.listLedger(id, 100).map(row => ({ ...row, reason: row.note, sourceType: row.source, inGameDelta: 0 }));
   }
+  historyPage(rawToken, filters = {}) {
+    const { player } = this.requireProfile(rawToken);
+    return this.profiles.listHistoryPage(player.playerId, filters);
+  }
+  storageHealth() { return this.profiles.storageHealth(); }
+  auditFixedGameHolds(options = {}) { return this.profiles.auditFixedGameHolds(options); }
+  heldReservationCount() { return this.profiles.heldReservationCount(); }
   missionList(id) {
     const current = vietnamDay();
     const periods = this.profiles.db.prepare(`SELECT DISTINCT period FROM mission_progress
       WHERE profile_id = ? AND period < ? ORDER BY period DESC LIMIT 6`).all(id, current).map(row => row.period);
-    return [current, ...periods].flatMap(period => this.profiles.getMissions(id, period))
-      .filter(m => this.validPeriod(m.period) && (m.period === current || (m.complete && !m.claimed)))
+    const daily = [current, ...periods].flatMap(period => this.profiles.getMissions(id, period))
+      .filter(m => m.kind !== 'tutorial' && this.validPeriod(m.period) && (m.period === current || (m.complete && !m.claimed)));
+    const tutorial = this.profiles.getMissions(id, current).find(m => m.kind === 'tutorial');
+    return [...daily, ...(tutorial ? [tutorial] : [])]
       .map(m => ({ ...m, missionId: m.id, title: m.description, target: m.threshold, periodKey: m.period,
         completed: m.complete, locked: !m.enabled, lockReason: !m.enabled ? 'Chưa có hướng dẫn được server xác minh.' : '' }));
   }
@@ -91,13 +100,13 @@ class ProfileService {
   claimMission(rawToken, request = {}) {
     const { player } = this.requireProfile(rawToken);
     const period = request.periodKey || vietnamDay();
-    if (!this.validPeriod(period)) throw new StoreError('Kỳ nhiệm vụ đã hết hạn.', 'MISSION_EXPIRED');
+    if (request.missionId !== 'tutorial_verified' && !this.validPeriod(period)) throw new StoreError('Kỳ nhiệm vụ đã hết hạn.', 'MISSION_EXPIRED');
     this.profiles.claimMission(player.playerId, request.missionId, request.version || 1, period);
     return this.profilePayload(rawToken);
   }
   canEnterWalletRoom(id, code) {
     const held = this.profiles.db.prepare("SELECT room_code FROM reservations WHERE profile_id = ? AND status = 'HELD' AND room_code <> ? LIMIT 1").get(id, code);
-    if (held) throw new StoreError('Hồ sơ đang giữ chip ở một bàn khác.', 'PROFILE_ALREADY_IN_WALLET_ROOM');
+    if (held) throw new StoreError('Hồ sơ đang giữ tiền cược ở một bàn khác.', 'PROFILE_ALREADY_IN_WALLET_ROOM');
   }
   syncRoom(room) {
     if (!room) return null;

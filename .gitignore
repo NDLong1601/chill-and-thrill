@@ -1,6 +1,25 @@
+# Installed dependencies and local player data
 node_modules/
-data/
-test-results/
+/data/
+/backups/
+*.sqlite
+*.sqlite-*
+*.sqlite3
+*.sqlite3-*
+*.db
+*.db-*
+
+# Test output, local reproductions and migration snapshots
+/test-results/
+/scratch/
+/.tmp-*/
 *.log
 .migration-backups/
 .playwright-mcp/
+
+# Local configuration and Python asset-import cache
+.env
+.env.*
+!.env.example
+__pycache__/
+*.pyc

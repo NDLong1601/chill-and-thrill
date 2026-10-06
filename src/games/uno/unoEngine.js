@@ -4,10 +4,13 @@ const crypto = require('node:crypto');
 const fs = require('node:fs');
 const path = require('node:path');
 const { COLORS, COLOR_NAMES, createUnoDeck, shuffle, cardLabel } = require('./unoDeck');
+const { leaveCompletedSeats } = require('../../platform/completedRoom');
+const { DEFAULT_RECONNECT_GRACE_MS, markDisconnected, markConnected, restoreDisconnectedSeats, isReconnectExpired, reconnectWaiters, isServerActionSocket, serverActionPlayer } = require('../../platform/reconnectGrace');
+const { runStorageOperation } = require('../../platform/storageDiagnostics');
 
 const AVATARS = ['🕶️', '🥷', '💻', '🔓', '🎲', '🏎️'];
 const ACTIVE_PHASES = new Set(['TURN', 'UNO_WINDOW', 'WDF_CHALLENGE', 'DRAW_PENALTY']);
-const cleanName = value => String(value || '').trim().slice(0, 18) || 'Player';
+const cleanName = value => require('../../../public/js/game-values').cleanDisplayName(value) || 'Player';
 const now = () => Date.now();
 
 class UnoManager {
@@ -16,11 +19,18 @@ class UnoManager {
     this.rooms = new Map();
     this.playerRoom = new Map();
     this.storageFile = options.storageFile || null;
-    this.graceMs = options.graceMs ?? 120000;
+    this.storageDiagnostics = options.storageDiagnostics || null;
+    this.profileStore = options.profileStore || null;
+    this.graceMs = options.graceMs ?? DEFAULT_RECONNECT_GRACE_MS;
     this.codeTaken = typeof options.codeTaken === 'function' ? options.codeTaken : () => false;
     this.profileForSocket = typeof options.profileForSocket === 'function' ? options.profileForSocket : () => null;
     this.onMatchCompleted = typeof options.onMatchCompleted === 'function' ? options.onMatchCompleted : null;
     this.load();
+    require('../../platform/turnTimeouts').attachGameClock(this, 'uno');
+    const { installGameStateTransactions, wrapGameStateMutations } = require('../../platform/gameStateTransactions');
+    installGameStateTransactions(this, ['uno-108'], () => 'uno-108');
+    wrapGameStateMutations(this, this, ['createRoom', 'joinRoom', 'resumeRoom', 'setReady', 'startGame', 'startRound',
+      'action', 'finishUnoWindow', 'finish', 'playAgain', 'handleDisconnect', 'leaveRoom', 'cleanup', 'broadcast']);
     this.cleanupTimer = setInterval(() => this.cleanup(), 1000);
     this.cleanupTimer.unref();
   }
@@ -39,22 +49,30 @@ class UnoManager {
     const profile = this.profileForSocket(socket);
     return {
       id: crypto.randomUUID(), token: crypto.randomBytes(32).toString('hex'), socketId: socket.id,
-      profileId: profile?.id || null, name: profile?.displayName || cleanName(name), avatar: profile?.avatar || (AVATARS.includes(avatar) ? avatar : AVATARS[0]), isHost,
-      connected: true, disconnectedAt: null, ready: false, hand: [],
+      profileId: profile?.id || null, name: cleanName(profile?.displayName || name), avatar: profile?.avatar || (AVATARS.includes(avatar) ? avatar : AVATARS[0]), isHost,
+      connected: true, disconnectedAt: null, reconnectDeadlineAt: null, leaveAfterHand: false, ready: false, hand: [],
     };
   }
   credentials(room, player) { return { roomCode: room.code, playerId: player.id, sessionToken: player.token, gameId: 'uno' }; }
   bind(socket, room, player) {
+    player.name = cleanName(this.profileForSocket(socket)?.displayName || player.name);
     this.playerRoom.set(socket.id, room.code); socket.join(room.code);
-    player.socketId = socket.id; player.connected = true; player.disconnectedAt = null;
-    if (!room.players.some(p => !p.connected)) this.resumeClock(room);
+    player.socketId = socket.id; markConnected(player);
+    const { wasPaused, waiting } = this.refreshReconnectState(room);
+    if (wasPaused && !waiting.length) { this.addLog(room, 'Mọi người đã kết nối lại; ván tiếp tục.'); this.touch(room); }
   }
-  player(room, socket) { return room?.players.find(p => p.socketId === socket.id && p.connected); }
+  player(room, socket) { return serverActionPlayer(this, room, socket) || room?.players.find(p => p.socketId === socket.id && p.connected); }
+  refreshReconnectState(room, at = now()) {
+    const wasPaused = !!room.paused, waiting = reconnectWaiters(room, at, this.graceMs);
+    room.reconnectPaused = waiting.length > 0; room.paused = ACTIVE_PHASES.has(room.phase) && room.reconnectPaused;
+    return { wasPaused, waiting };
+  }
   access(socket, code, phases) {
     const room = this.rooms.get(code), player = this.player(room, socket);
     if (!room || !player) return this.error(socket, 'Bạn không còn ở trong phòng UNO này.');
     if (phases && !phases.includes(room.phase)) return this.error(socket, 'Thao tác không phù hợp với giai đoạn hiện tại.');
-    if (ACTIVE_PHASES.has(room.phase) && (room.paused || room.players.some(p => !p.connected))) return this.error(socket, 'Ván đang tạm dừng do có người mất kết nối.');
+    const { waiting } = this.refreshReconnectState(room);
+    if (!isServerActionSocket(this, socket) && ACTIVE_PHASES.has(room.phase) && waiting.length) return this.error(socket, `Ván đang tạm dừng; chờ ${waiting.map(item => item.name).join(', ')} kết nối lại.`);
     return { room, player };
   }
   touch(room) { room.revision++; room.updatedAt = now(); this.saveSoon(); }
@@ -183,6 +201,17 @@ class UnoManager {
     if (ids.length > 200) ids.slice(0, ids.length - 200).forEach(id => delete room.actionIds[id]);
   }
   action(socket, code, data) {
+    if (data?.action === 'leave_after_hand') {
+      const room = this.rooms.get(code), player = this.player(room, socket);
+      if (!room || !player || isServerActionSocket(this, socket)) return this.error(socket, 'Bạn không còn ở trong phòng UNO này.');
+      if (!ACTIVE_PHASES.has(room.phase)) return this.error(socket, 'Chỉ có thể xếp lịch rời khi ván UNO đang chơi.');
+      const invalid = this.verifyAction(room, data || {});
+      if (invalid === 'duplicate') return { ok: true, queued: !!player.leaveAfterHand };
+      if (invalid) return this.error(socket, invalid);
+      player.leaveAfterHand = true; this.rememberAction(room, data.actionId);
+      this.addLog(room, `${player.name} sẽ rời phòng sau khi ván UNO kết thúc.`); this.touch(room); this.broadcast(code);
+      return { ok: true, queued: true };
+    }
     const ctx = this.access(socket, code); if (!ctx || ctx.error) return ctx;
     const { room, player } = ctx, invalid = this.verifyAction(room, data || {});
     if (invalid === 'duplicate') return; // idempotent retry: state was already emitted.
@@ -200,7 +229,7 @@ class UnoManager {
       case 'play_again': result = this.playAgain(socket, room, player); break;
       default: return this.error(socket, 'Hành động UNO không hợp lệ.');
     }
-    if (result === false) return;
+    if (result === false || result?.error) return;
     this.rememberAction(room, data.actionId); this.touch(room); this.broadcast(code);
   }
   requireCurrent(socket, room, player) {
@@ -298,7 +327,9 @@ class UnoManager {
       players: room.players.map(player => ({ profileId: player.profileId, outcome: player.id === winner.id ? 'WIN' : 'LOSS' })),
       result: { winnerProfileId: winner.profileId || null, winnerName: winner.name, durationMs: result.durationMs },
     });
-    this.addLog(room, `${winner.name} đánh hết bài và thắng ván UNO.`); return true;
+    this.addLog(room, `${winner.name} đánh hết bài và thắng ván UNO.`);
+    leaveCompletedSeats(this, room, 'uno');
+    return true;
   }
   playAgain(socket, room, player) {
     if (room.phase !== 'RESULT' || !player.isHost) { this.error(socket, 'Chỉ chủ phòng được chơi lại sau khi ván kết thúc.'); return false; }
@@ -322,27 +353,38 @@ class UnoManager {
   handleDisconnect(socket) {
     const code = this.playerRoom.get(socket.id), room = this.rooms.get(code), player = this.player(room, socket); this.playerRoom.delete(socket.id);
     if (!player) return;
-    player.connected = false; player.socketId = null; player.disconnectedAt = now(); this.ensureHost(room);
-    if (ACTIVE_PHASES.has(room.phase)) { room.paused = true; this.pauseClock(room); }
-    this.addLog(room, `${player.name} mất kết nối; ván tạm dừng để giữ ghế.`); this.touch(room); this.broadcast(code);
+    markDisconnected(player, now(), this.graceMs); this.ensureHost(room); this.refreshReconnectState(room);
+    this.addLog(room, `${player.name} mất kết nối; có 120 giây để khôi phục ghế${ACTIVE_PHASES.has(room.phase) ? '; sau đó server tự xử lý lượt theo luật UNO.' : '.'}`); this.touch(room); this.broadcast(code); this.flush();
   }
   leaveRoom(socket, code) {
-    const ctx = this.access(socket, code, ['WAITING', 'RESULT']); if (!ctx || ctx.error) return ctx;
-    const { room, player } = ctx; room.players = room.players.filter(p => p !== player); this.playerRoom.delete(socket.id); socket.leave(code);
+    const room = this.rooms.get(code), player = this.player(room, socket);
+    if (!room || !player || isServerActionSocket(this, socket)) return this.error(socket, 'Bạn không còn ở trong phòng UNO này.');
+    if (ACTIVE_PHASES.has(room.phase)) {
+      room.phase = 'WAITING'; room.matchId = crypto.randomUUID(); room.result = null; room.currentPlayerId = null;
+      room.drawPile = []; room.discardPile = []; room.pendingDraw = null; room.pendingUno = null; room.pendingWdf = null;
+      room.pendingResolution = null; room.drawnCardId = null; room.unoDeclaredForTurn = false;
+      room.paused = false; room.reconnectPaused = false; room.pausedClock = null; room.turnClock = null;
+      room.players.forEach(item => { item.ready = false; item.hand = []; item.leaveAfterHand = false; });
+      this.addLog(room, `Ván UNO bị hủy vì ${player.name} rời phòng. Cả đội trở về phòng chờ.`);
+    }
+    room.players = room.players.filter(p => p !== player); this.playerRoom.delete(socket.id); socket.leave(code);
     socket.emit('room_left');
-    if (!room.players.length) { this.rooms.delete(code); this.saveSoon(); return; }
+    if (!room.players.length) { this.rooms.delete(code); this.saveSoon(); return { ok: true }; }
     this.ensureHost(room); this.addLog(room, `${player.name} rời phòng.`); this.touch(room); this.broadcast(code);
+    return { ok: true };
   }
   syncState(socket, code) { const ctx = this.access(socket, code); if (ctx && !ctx.error) socket.emit('game_state', this.buildStateFor(ctx.room, ctx.player.id)); return ctx; }
   cleanup() {
+    const at = now();
     for (const room of this.rooms.values()) {
-      if (room.phase === 'UNO_WINDOW' && room.pendingUno?.deadlineAt && room.pendingUno.deadlineAt <= now()) { this.addLog(room, 'Hết thời gian bắt lỗi UNO.'); this.finishUnoWindow(room); this.touch(room); this.broadcast(room.code); }
-      if (room.phase === 'WDF_CHALLENGE' && room.pendingWdf?.deadlineAt && room.pendingWdf.deadlineAt <= now()) {
+      const { wasPaused, waiting } = this.refreshReconnectState(room, at);
+      if (wasPaused && !waiting.length && ACTIVE_PHASES.has(room.phase)) { this.addLog(room, 'Hết thời gian khôi phục; ván tiếp tục và server tự xử lý các lượt theo luật UNO.'); this.touch(room); this.broadcast(room.code); }
+      if (room.phase === 'UNO_WINDOW' && room.pendingUno?.deadlineAt && room.pendingUno.deadlineAt <= at) { this.addLog(room, 'Hết thời gian bắt lỗi UNO.'); this.finishUnoWindow(room); this.touch(room); this.broadcast(room.code); }
+      if (room.phase === 'WDF_CHALLENGE' && room.pendingWdf?.deadlineAt && room.pendingWdf.deadlineAt <= at) {
         const pending = room.pendingWdf, target = this.byId(room, pending.targetId); if (target) { this.drawCards(room, target, 4); this.addLog(room, `${target.name} không phản hồi +4, rút 4 lá và mất lượt.`); if (pending.winner) this.finish(room, this.byId(room, pending.winner.playerId), pending.winner.card); else this.advanceFrom(room, target.id); this.touch(room); this.broadcast(room.code); }
       }
-      if (!room.players.some(p => p.connected) && now() - room.updatedAt > 12 * 3600000) this.rooms.delete(room.code);
-      if (room.phase === 'WAITING') {
-        const expired = room.players.filter(p => !p.connected && now() - p.disconnectedAt > this.graceMs);
+      if (['WAITING', 'RESULT'].includes(room.phase)) {
+        const expired = room.players.filter(p => isReconnectExpired(p, at, this.graceMs));
         if (expired.length) { room.players = room.players.filter(p => !expired.includes(p)); this.ensureHost(room); this.touch(room); if (room.players.length) this.broadcast(room.code); else this.rooms.delete(room.code); }
       }
     }
@@ -368,32 +410,42 @@ class UnoManager {
       pendingDraw: room.pendingDraw ? { targetId: room.pendingDraw.targetId, count: room.pendingDraw.count } : null,
       myHand: me?.hand || [], drawnCardId: me?.id === room.currentPlayerId ? room.drawnCardId || null : null,
       unoDeclaredForTurn: me?.id === room.currentPlayerId ? !!room.unoDeclaredForTurn : false,
-      players: room.players.map(p => ({ id: p.id, name: p.name, avatar: p.avatar, isHost: p.isHost, ready: p.ready, connected: p.connected, handCount: p.hand.length })),
+      players: room.players.map(p => ({ id: p.id, name: p.name, avatar: p.avatar, isHost: p.isHost, ready: p.ready, connected: p.connected, leaveAfterHand: p.leaveAfterHand, handCount: p.hand.length })),
       result: room.result, history: room.history, log: room.log,
     };
   }
   load() {
     if (!this.storageFile || !fs.existsSync(this.storageFile)) return;
-    try {
+    try { runStorageOperation(this.storageDiagnostics, 'manager:uno-advanced', 'read', 'room-file-load', () => {
       const saved = JSON.parse(fs.readFileSync(this.storageFile, 'utf8'));
       if (saved.version !== 1 || !Array.isArray(saved.rooms)) throw new Error('Định dạng lưu UNO không hợp lệ');
+      let changed = false;
       for (const room of saved.rooms) {
-        if (now() - room.updatedAt > 12 * 3600000) continue;
-        room.players.forEach(p => { p.connected = false; p.socketId = null; p.disconnectedAt = now(); });
-        room.paused = ACTIVE_PHASES.has(room.phase); this.pauseClock(room); this.rooms.set(room.code, room);
+        if (now() - room.updatedAt > 12 * 3600000 && !ACTIVE_PHASES.has(room.phase)) continue;
+        changed = restoreDisconnectedSeats(room.players, now(), this.graceMs) || changed;
+        if (room.pausedClock && Number.isFinite(room.pausedClock.remainingMs)) {
+          const deadlineAt = now() + Math.max(0, room.pausedClock.remainingMs);
+          if (room.phase === 'UNO_WINDOW' && room.pendingUno) room.pendingUno.deadlineAt = deadlineAt;
+          if (room.phase === 'WDF_CHALLENGE' && room.pendingWdf) room.pendingWdf.deadlineAt = deadlineAt;
+          room.pausedClock = null; changed = true;
+        }
+        this.refreshReconnectState(room); this.rooms.set(room.code, room);
       }
-    } catch (error) { console.error('Không đọc được dữ liệu phòng UNO:', error.message); this.storageError = true; }
+      if (changed) this.flush();
+    }, { recoveryVerified: true, failureCode: 'ROOM_JSON_READ_FAILED' });
+    } catch (error) { console.error('Không đọc được dữ liệu phòng UNO:', error.message); this.storageReadError = true; this.storageError = true; }
   }
   saveSoon() {
-    if (!this.storageFile || this.storageError || this.saveTimer) return;
+    if (!this.storageFile || this.storageReadError || this.saveTimer) return;
     this.saveTimer = setTimeout(() => { this.saveTimer = null; this.flush(); }, 100); this.saveTimer.unref();
   }
   flush() {
-    if (!this.storageFile || this.storageError) return;
-    try {
+    if (!this.storageFile || this.storageReadError) return;
+    try { runStorageOperation(this.storageDiagnostics, 'manager:uno-advanced', this.runStateMutation ? 'export' : 'write', 'room-file-save', () => {
       fs.mkdirSync(path.dirname(this.storageFile), { recursive: true });
       fs.writeFileSync(`${this.storageFile}.tmp`, JSON.stringify({ version: 1, rooms: [...this.rooms.values()] }), { mode: 0o600 });
       fs.renameSync(`${this.storageFile}.tmp`, this.storageFile);
+    }, { failureCode: 'ROOM_JSON_WRITE_FAILED' });
     } catch (error) { console.error('Không lưu được dữ liệu phòng UNO:', error.message); }
   }
 }

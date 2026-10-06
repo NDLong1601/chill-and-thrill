@@ -7,6 +7,9 @@ const { deal, shuffleDeck } = require('./deck');
 const { getBestHand, checkShowdown, explainComparison } = require('./handEvaluator');
 const { CHALLENGES, SPECIALISTS, GAME_MODES } = require('./cardsData');
 const { getGame } = require('./platform/gameRegistry');
+const { leaveCompletedSeats } = require('./platform/completedRoom');
+const { runStorageOperations } = require('./platform/storageDiagnostics');
+const { DEFAULT_RECONNECT_GRACE_MS, deadlineFor, markDisconnected, markConnected, restoreDisconnectedSeats, isReconnectExpired, reconnectWaiters, isServerActionSocket, serverActionPlayer } = require('./platform/reconnectGrace');
 
 const ROUNDS = ['PRE_FLOP', 'FLOP', 'TURN', 'RIVER'];
 const COLORS = ['white', 'yellow', 'orange', 'red'];
@@ -14,7 +17,7 @@ const AVATARS = ['🕶️', '🥷', '💻', '🔓', '🎲', '🏎️'];
 const EMOTES = ['😂', '😱', '🤔', '😎', '🤫', '😡', '💸', '🤝', '🚨', '💀'];
 const QUICK_CHAT = ['Sẵn sàng!', 'Chờ một chút nhé.', 'Mọi người kiểm tra chip nhé.', 'Tiếp tục nào!', 'Cảm ơn cả đội!'];
 const STORAGE_VERSION = 2;
-const cleanName = value => String(value || '').trim().slice(0, 18) || 'Player';
+const cleanName = value => require('../public/js/game-values').cleanDisplayName(value) || 'Player';
 const clock = () => new Date().toLocaleTimeString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh', hour: '2-digit', minute: '2-digit', second: '2-digit' });
 const emptyChips = () => ({ white: null, yellow: null, orange: null, red: null });
 const hashSessionToken = value => crypto.createHash('sha256').update(String(value)).digest('hex');
@@ -60,13 +63,21 @@ class GameManager {
     this.playerRoom = new Map();
     this.stateAdapters = new Map();
     this.storageFile = options.storageFile || null;
+    this.storageDiagnostics = options.storageDiagnostics || options.profileService?.profiles?.storageDiagnostics || null;
     this.onRoomChanged = options.onRoomChanged || null;
     this.profileService = options.profileService || null;
     this.codeTaken = typeof options.codeTaken === 'function' ? options.codeTaken : () => false;
     this.profileForSocket = typeof options.profileForSocket === 'function' ? options.profileForSocket : () => null;
-    this.graceMs = options.graceMs ?? 120000;
+    this.graceMs = options.graceMs ?? DEFAULT_RECONNECT_GRACE_MS;
     this.load();
-    this.cleanupTimer = setInterval(() => this.cleanup(), 30000);
+    const { installGameStateTransactions, wrapGameStateMutations } = require('./platform/gameStateTransactions');
+    installGameStateTransactions(this, ['the-gang', 'uno-local'], room => room.gameId === 'uno' ? 'uno-local' : 'the-gang');
+    wrapGameStateMutations(this, this, ['createRoom', 'joinRoom', 'resumeRoom', 'handleDisconnect', 'cleanup',
+      'leaveRoom', 'removePlayer', 'transferHost', 'setPaused', 'setReady', 'setChatMode', 'changeMode', 'setAvatar',
+      'startGame', 'startHeist', 'claimChip', 'returnChip', 'snatchChip', 'confirmRound', 'advancePhase',
+      'specialistAction', 'activateSpecialist', 'doShowdown', 'submitGuess', 'revealNext', 'finishHeist',
+      'nextHeist', 'playAgain', 'returnToLobby', 'resetToLobby', 'sendChat', 'sendEmote', 'broadcast']);
+    this.cleanupTimer = setInterval(() => this.cleanup(), 1000);
     this.cleanupTimer.unref();
   }
 
@@ -76,72 +87,111 @@ class GameManager {
 
   load() {
     if (!this.storageFile || !fs.existsSync(this.storageFile)) return;
+    const sourceIds = ['manager:the-gang', 'manager:uno-classic'];
+    sourceIds.filter(id => this.storageDiagnostics?.hasSource?.(id)).forEach(id => this.storageDiagnostics.begin(id, 'read', 'room-file-load'));
     try {
       const saved = JSON.parse(fs.readFileSync(this.storageFile, 'utf8'));
       if (![1, STORAGE_VERSION].includes(saved.version) || !Array.isArray(saved.rooms)) throw new Error('Định dạng lưu phòng không hợp lệ');
+      let changed = false;
+      const recovered = [];
       for (const room of saved.rooms) {
         migrateRoom(room);
-        if (Date.now() - room.updatedAt > 12 * 3600000) continue;
+        const active = !['WAITING', 'RESULT', 'GAME_OVER', 'CANCELLED'].includes(room.phase);
+        if (Date.now() - room.updatedAt > 12 * 3600000 && !active) continue;
+        const hadOfflineSeat = room.players.some(p => p.connected === false || Number.isFinite(p.disconnectedAt));
+        if (typeof room.hostPaused !== 'boolean') { room.hostPaused = !!room.paused && !hadOfflineSeat; changed = true; }
         room.players.forEach(p => {
           if (!p.tokenHash && p.token) p.tokenHash = hashSessionToken(p.token);
           p.profileId ||= p.id;
-          p.connected = false; p.socketId = null; p.roundConfirmed = false; p.disconnectedAt = Date.now();
+          p.roundConfirmed = false;
         });
-        this.rooms.set(room.code, room);
+        changed = restoreDisconnectedSeats(room.players, Date.now(), this.graceMs) || changed;
+        this.refreshReconnectState(room);
+        recovered.push(room);
       }
+      for (const room of recovered) this.rooms.set(room.code, room);
+      sourceIds.filter(id => this.storageDiagnostics?.hasSource?.(id)).forEach(id => this.storageDiagnostics.succeed(id, 'read', { stage: 'room-file-load', recoveryVerified: true }));
+      if (changed) this.flush();
     } catch (error) {
       console.error('Không đọc được dữ liệu phòng:', error.message);
       // Preserve the source rather than silently overwriting an unreadable save.
+      sourceIds.filter(id => this.storageDiagnostics?.hasSource?.(id)).forEach(id => this.storageDiagnostics.fail(id, 'read', { stage: 'room-file-load', code: 'ROOM_JSON_READ_FAILED' }));
+      this.storageReadError = true;
       this.storageError = true;
+      this.rooms.clear();
     }
   }
 
   saveSoon() {
-    if (!this.storageFile || this.saveTimer || this.storageError) return;
+    if (!this.storageFile || this.saveTimer || this.storageReadError) return;
     this.saveTimer = setTimeout(() => { this.saveTimer = null; this.flush(); }, 100);
     this.saveTimer.unref();
   }
 
   flush() {
-    if (!this.storageFile || this.storageError) return;
+    if (!this.storageFile || this.storageReadError) return;
+    const sourceIds = ['manager:the-gang', 'manager:uno-classic'];
     try {
-      fs.mkdirSync(path.dirname(this.storageFile), { recursive: true });
-      const safeRooms = JSON.parse(JSON.stringify([...this.rooms.values()], (key, value) => {
-        if (key === 'socketId' || (key === 'token' && this.profileService)) return undefined;
-        return value;
-      }));
-      fs.writeFileSync(this.storageFile + '.tmp', JSON.stringify({ version: STORAGE_VERSION, rooms: safeRooms }), { mode: 0o600 });
-      fs.renameSync(this.storageFile + '.tmp', this.storageFile);
-    } catch (error) { console.error('Không lưu được dữ liệu phòng:', error.message); }
+      runStorageOperations(this.storageDiagnostics, sourceIds, this.runStateMutation ? 'export' : 'write', 'room-file-save', () => {
+        fs.mkdirSync(path.dirname(this.storageFile), { recursive: true });
+        const safeRooms = JSON.parse(JSON.stringify([...this.rooms.values()], (key, value) => {
+          if (key === 'socketId' || (key === 'token' && this.profileService)) return undefined;
+          return value;
+        }));
+        fs.writeFileSync(this.storageFile + '.tmp', JSON.stringify({ version: STORAGE_VERSION, rooms: safeRooms }), { mode: 0o600 });
+        fs.renameSync(this.storageFile + '.tmp', this.storageFile);
+      }, { failureCode: 'ROOM_JSON_WRITE_FAILED' });
+      this.storageWriteError = false;
+    } catch (error) { this.storageWriteError = true; console.error('Không lưu được dữ liệu phòng:', error.message); }
   }
 
   close() { clearInterval(this.cleanupTimer); clearTimeout(this.saveTimer); this.flush(); }
 
   cleanup() {
-    for (const room of this.rooms.values()) {
-      if (!room.players.some(p => p.connected) && Date.now() - room.updatedAt > 12 * 3600000) {
-        this.rooms.delete(room.code);
-      } else if (room.phase === 'WAITING') {
-        const expired = room.players.filter(p => !p.connected && Date.now() - p.disconnectedAt > this.graceMs);
-        if (expired.length) {
-          room.players = room.players.filter(p => !expired.includes(p));
-          this.ensureHost(room);
-          if (room.players.length) this.broadcast(room.code); else this.rooms.delete(room.code);
-        }
+    const at = Date.now();
+    for (const room of [...this.rooms.values()]) {
+      const active = !['WAITING', 'GAME_OVER', 'CANCELLED'].includes(room.phase);
+      const { wasPaused, waiting } = this.refreshReconnectState(room, at);
+      const expired = room.players.filter(player => isReconnectExpired(player, at, this.graceMs));
+      if (room.gameId === 'the-gang' && active && expired.length) {
+        this.resetToLobby(room, 'Hết 120 giây khôi phục; The Gang trở về sảnh theo chính sách bàn giải trí.');
+        leaveCompletedSeats(this, room, 'the-gang');
+        room.players = room.players.filter(player => !expired.includes(player));
+        expired.forEach(player => this.profileService?.profiles?.markMemberLeft({ gameId: room.gameId, roomCode: room.code, playerId: player.id }));
+        this.ensureHost(room);
+        if (!room.players.length) { this.rooms.delete(room.code); this.profileService?.profiles?.closeGameRoom(room.gameId, room.code); }
+        else this.broadcast(room.code);
+        continue;
       }
+      if (wasPaused && !waiting.length && room.gameId === 'uno') this.broadcast(room.code);
+      if (['WAITING', 'RESULT', 'GAME_OVER'].includes(room.phase) && expired.length) {
+        room.players = room.players.filter(player => !expired.includes(player));
+        this.ensureHost(room);
+        if (room.players.length) this.broadcast(room.code); else this.rooms.delete(room.code);
+      }
+      if (!room.players.some(p => p.connected) && at - room.updatedAt > 12 * 3600000 && !active) this.rooms.delete(room.code);
     }
     this.saveSoon();
   }
 
   error(socket, message) { socket.emit('game_error', { message }); return null; }
-  player(room, socket) { return room?.players.find(p => p.socketId === socket.id && p.connected); }
+  player(room, socket) { return serverActionPlayer(this, room, socket) || room?.players.find(p => p.socketId === socket.id && p.connected); }
+  refreshReconnectState(room, at = Date.now()) {
+    const wasPaused = !!room.paused, active = !['WAITING', 'RESULT', 'GAME_OVER', 'CANCELLED'].includes(room.phase);
+    const waiting = active ? reconnectWaiters(room, at, this.graceMs) : [];
+    room.reconnectPaused = waiting.length > 0;
+    room.hostPaused = !!room.hostPaused;
+    room.paused = room.hostPaused || room.reconnectPaused;
+    return { wasPaused, waiting };
+  }
   access(socket, code, options = {}) {
     const room = this.rooms.get(code);
     const player = this.player(room, socket);
     if (!room || !player) return this.error(socket, 'Bạn không còn ở trong phòng này.');
     if (options.host && !player.isHost) return this.error(socket, 'Chỉ chủ phòng được thực hiện thao tác này.');
     if (options.phase && !options.phase.includes(room.phase)) return this.error(socket, 'Thao tác không phù hợp với vòng hiện tại.');
-    if (options.playing && (room.paused || room.players.some(p => !p.connected))) return this.error(socket, 'Ván đang tạm dừng hoặc có thành viên mất kết nối.');
+    const { waiting } = this.refreshReconnectState(room);
+    if (options.playing && (room.hostPaused || (!isServerActionSocket(this, socket) && waiting.length))) return this.error(socket, 'Ván đang tạm dừng hoặc có thành viên còn trong thời gian khôi phục.');
     if (options.phaseKey && options.phaseKey !== this.phaseKey(room)) return this.error(socket, 'Vòng đã thay đổi. Vui lòng thao tác lại.');
     return { room, player };
   }
@@ -160,7 +210,8 @@ class GameManager {
     return { id, profileId: id, token, tokenHash: hashSessionToken(token), socketId: socket.id,
       name: cleanName(name), avatar: AVATARS.includes(avatar) ? avatar : AVATARS[0], isHost, connected: true,
       ready: false, roundConfirmed: false, chips: emptyChips(), privateCards: [], best5: [],
-      handScore: 0, handName: '', handNameVi: '', rankLevel: 0, hasMuscleBonus: false, extraNote: '', privateInsights: [] };
+      handScore: 0, handName: '', handNameVi: '', rankLevel: 0, hasMuscleBonus: false, extraNote: '', privateInsights: [],
+      reconnectDeadlineAt: null, leaveAfterHand: false };
   }
 
   credentials(room, player) {
@@ -177,7 +228,12 @@ class GameManager {
       maxPlayers: config.maxPlayers || 6, updatedAt: room.updatedAt,
     };
   }
-  bind(socket, room, player) { this.playerRoom.set(socket.id, room.code); socket.join(room.code); player.socketId = socket.id; player.connected = true; player.disconnectedAt = null; }
+  bind(socket, room, player) {
+    const wasPaused = !!room.paused;
+    player.name = cleanName(player.name); this.playerRoom.set(socket.id, room.code); socket.join(room.code); player.socketId = socket.id; markConnected(player);
+    const { waiting } = this.refreshReconnectState(room);
+    if (wasPaused && !waiting.length) this.addLog(room, 'Mọi người đã kết nối lại; ván tiếp tục.', 'system');
+  }
 
   createRoom(socket, name, modeId = 'ADVANCED', avatar, roomOptions = {}) {
     if (this.playerRoom.has(socket.id)) return { error: 'Hãy rời phòng hiện tại trước khi tạo phòng mới.' };
@@ -197,7 +253,7 @@ class GameManager {
     const room = { code, phase: 'WAITING', matchId: crypto.randomUUID(), gameId: 'the-gang', category: 'casual', rulesVersion: 1,
       variant: 'standard', difficulty: mode.id, mode: mode.id, config,
       maxVaults: mode.maxVaults, maxAlarms: mode.maxAlarms, score: { vaults: 0, alarms: 0 },
-      heistNumber: 0, roundNumber: 0, gameOver: false, gameWon: false, paused: false, strictChat: true,
+      heistNumber: 0, roundNumber: 0, gameOver: false, gameWon: false, paused: false, hostPaused: false, reconnectPaused: false, strictChat: true,
       players: [player], communityCards: [], allCommunityCards: [], remainingDeck: [], discardPile: [],
       currentRoundChipColor: 'white', chipPool: [], challengeDeck: [...CHALLENGES], specialistDeck: [...SPECIALISTS],
       permanentChallenge: null, activeChallenges: [], activeSpecialist: null, specialistState: null,
@@ -225,7 +281,7 @@ class GameManager {
     const room = {
       code, phase: 'WAITING', matchId: crypto.randomUUID(), gameId: game.gameId, category: game.category,
       rulesVersion: game.rulesVersion, variant: roomOptions.variant || 'standard', difficulty: 'ADVANCED', mode: 'ADVANCED', config,
-      paused: false, strictChat: false, players: [player], log: [], chatLog: [], history: [], matches: [], updatedAt: Date.now(),
+      paused: false, hostPaused: false, reconnectPaused: false, strictChat: false, players: [player], log: [], chatLog: [], history: [], matches: [], updatedAt: Date.now(),
       uno: null,
     };
     this.rooms.set(code, room); this.bind(socket, room, player);
@@ -276,15 +332,22 @@ class GameManager {
     const code = this.playerRoom.get(socket.id), room = this.rooms.get(code), player = this.player(room, socket);
     this.playerRoom.delete(socket.id);
     if (!player) return;
-    player.connected = false; player.socketId = null; player.disconnectedAt = Date.now(); player.roundConfirmed = false;
-    this.addLog(room, `📶 ${player.name} mất kết nối; giữ ghế để khôi phục`, 'system');
+    markDisconnected(player, Date.now(), this.graceMs); player.roundConfirmed = false;
+    this.refreshReconnectState(room);
+    this.addLog(room, `📶 ${player.name} mất kết nối; có 120 giây để khôi phục ghế.`, 'system');
     this.stateAdapters.get(room.gameId)?.onDisconnect?.(room, player.id);
-    this.ensureHost(room); this.broadcast(code);
+    this.ensureHost(room); this.broadcast(code); this.flush();
   }
 
   leaveRoom(socket, code) {
+    const room = this.rooms.get(code), player = this.player(room, socket);
+    if (!room || !player || isServerActionSocket(this, socket)) return this.error(socket, 'Bạn không còn ở trong phòng này.');
+    if (room.gameId === 'the-gang' && !['WAITING', 'RESULT', 'GAME_OVER', 'CANCELLED'].includes(room.phase)) {
+      player.leaveAfterHand = true;
+      this.addLog(room, `${player.name} sẽ rời bàn sau vụ cướp này.`, 'system'); this.broadcast(code);
+      return { queued: true };
+    }
     const ctx = this.access(socket, code, { phase: ['WAITING', 'RESULT', 'GAME_OVER'] }); if (!ctx) return;
-    const { room, player } = ctx;
     room.players = room.players.filter(p => p !== player); this.playerRoom.delete(socket.id); socket.leave(code);
     this.ensureHost(room); socket.emit('room_left');
     this.addLog(room, `👋 ${player.name} rời phòng`, 'system');
@@ -311,7 +374,8 @@ class GameManager {
 
   setPaused(socket, code, paused) {
     const ctx = this.access(socket, code, { host: true }); if (!ctx) return;
-    ctx.room.paused = !!paused; this.addLog(ctx.room, paused ? '⏸ Ván đã tạm dừng' : '▶ Tiếp tục ván', 'system'); this.broadcast(code);
+    ctx.room.hostPaused = !!paused; this.refreshReconnectState(ctx.room);
+    this.addLog(ctx.room, paused ? '⏸ Ván đã tạm dừng' : '▶ Tiếp tục ván', 'system'); this.broadcast(code);
   }
 
   setReady(socket, code, ready) {
@@ -355,7 +419,7 @@ class GameManager {
     const mode = GAME_MODES[room.mode];
       this.rememberDecks(room);
     const progress = room.deckProgress?.[room.mode];
-    Object.assign(room, { matchId: crypto.randomUUID(), gameOver: false, gameWon: false, score: { vaults: 0, alarms: 0 },
+    Object.assign(room, { matchId: crypto.randomUUID(), reconnectPolicyVersion: 2, hostPaused: false, reconnectPaused: false, paused: false, gameOver: false, gameWon: false, score: { vaults: 0, alarms: 0 },
       heistNumber: 0, permanentChallenge: null, activeChallenges: [], activeSpecialist: null,
       deckMode: room.mode, challengeDeck: [...(progress?.challenges || CHALLENGES)].filter(c => !((mode.permanentChallenge || mode.doubleChallenges) && c.id === 1)), specialistDeck: [...(progress?.specialists || SPECIALISTS)] });
     if (mode.permanentChallenge) {
@@ -567,7 +631,7 @@ class GameManager {
   finishHeist(room) {
     const players = room.showdown.order.map(id => {
       const p = room.players.find(p => p.id === id);
-      return { id: p.id, name: p.name, avatar: p.avatar, chip: p.chips.red, privateCards: p.privateCards, best5: p.best5,
+      return { id: p.id, name: cleanName(p.name), avatar: p.avatar, chip: p.chips.red, privateCards: p.privateCards, best5: p.best5,
         handScore: p.handScore, handName: p.handName, handNameVi: p.handNameVi, rankLevel: p.rankLevel, hasMuscleBonus: p.hasMuscleBonus };
     });
     const result = checkShowdown(players), top = players.at(-1), guesses = room.showdown.guesses;
@@ -584,7 +648,10 @@ class GameManager {
     room.gameOver = room.gameWon || room.score.alarms >= room.maxAlarms;
     room.phase = room.gameOver ? 'GAME_OVER' : 'RESULT';
     if (room.gameOver) { room.matches.unshift({ matchId: room.matchId, mode: room.mode, won: room.gameWon, score: { ...room.score }, date: new Date().toISOString() }); room.matches = room.matches.slice(0, 100); }
-    this.addLog(room, result.success ? '🔓 Vụ cướp thành công!' : '🚨 Vụ cướp thất bại!', result.success ? 'win' : 'alarm'); this.broadcast(room.code);
+    this.addLog(room, result.success ? '🔓 Vụ cướp thành công!' : '🚨 Vụ cướp thất bại!', result.success ? 'win' : 'alarm');
+    this.broadcast(room.code);
+    leaveCompletedSeats(this, room, 'the-gang');
+    if (this.rooms.has(room.code)) this.broadcast(room.code);
   }
 
   nextHeist(socket, code) {
@@ -607,12 +674,18 @@ class GameManager {
   returnToLobby(socket, code) {
     const ctx = this.access(socket, code, { host: true }); if (!ctx) return;
     const room = ctx.room;
+    this.resetToLobby(room, '🏠 Trở về phòng chờ');
+    leaveCompletedSeats(this, room, 'the-gang');
+    if (this.rooms.has(code)) this.broadcast(code);
+  }
+
+  resetToLobby(room, message = '🏠 Trở về phòng chờ') {
     this.rememberDecks(room);
-    Object.assign(room, { phase: 'WAITING', paused: false, gameOver: false, gameWon: false, score: { vaults: 0, alarms: 0 },
+    Object.assign(room, { phase: 'WAITING', paused: false, hostPaused: false, reconnectPaused: false, gameOver: false, gameWon: false, score: { vaults: 0, alarms: 0 },
       heistNumber: 0, roundNumber: 0, communityCards: [], allCommunityCards: [], remainingDeck: [], chipPool: [],
       activeChallenges: [], activeSpecialist: null, specialistState: null, permanentChallenge: null, showdown: null, lastResult: null });
     room.players.forEach(p => Object.assign(p, { ready: false, roundConfirmed: false, chips: emptyChips(), privateCards: [], best5: [], privateInsights: [], hasMuscleBonus: false, extraNote: '', handName: '', handNameVi: '' }));
-    this.addLog(room, '🏠 Trở về phòng chờ', 'system'); this.broadcast(code);
+    this.addLog(room, message, 'system');
   }
 
   sendChat(socket, code, text) {
@@ -639,7 +712,11 @@ class GameManager {
     room.updatedAt = Date.now();
     if (this.onRoomChanged) {
       try { this.onRoomChanged(room); }
-      catch (error) { this.storageError = true; console.error('Không ghi được trạng thái SQLite:', error.message); }
+      catch (error) {
+        this.storageWriteError = true;
+        if (this.stateTransactionDepth) throw error;
+        console.error('Không ghi được trạng thái SQLite:', error.message);
+      }
     }
     for (const p of room.players) { const socket = this.io.sockets.sockets.get(p.socketId); if (socket && p.connected) socket.emit('game_state', this.buildStateFor(room, p.id)); }
     this.saveSoon();
@@ -671,8 +748,8 @@ class GameManager {
         needsValue: this.has(room, 4), needsRank: this.has(room, 9) } : null,
       players: room.players.map(p => {
         const visible = p.id === playerId || revealed.includes(p.id);
-        return { id: p.id, name: p.name, avatar: p.avatar, isHost: p.isHost, connected: p.connected, ready: p.ready,
-          roundConfirmed: p.roundConfirmed, reconnectDeadline: p.disconnectedAt ? p.disconnectedAt + this.graceMs : null,
+        return { id: p.id, name: cleanName(p.name), avatar: p.avatar, isHost: p.isHost, connected: p.connected, ready: p.ready,
+          roundConfirmed: p.roundConfirmed, reconnectDeadline: deadlineFor(p, this.graceMs), leaveAfterHand: !!p.leaveAfterHand,
           chips: Object.fromEntries(COLORS.map(c => [c, blind && COLORS.indexOf(c) < room.roundNumber - 1 ? null : p.chips[c]])),
           lockedChip: ROUNDS.includes(room.phase) && this.isChipLocked(room, p.chips[room.currentRoundChipColor]),
           handName: revealed.includes(p.id) ? p.handName : '', handNameVi: revealed.includes(p.id) ? p.handNameVi : '',

@@ -1,0 +1,69 @@
+.room-preflight {
+  display: grid;
+  gap: 0.8rem;
+  width: 100%;
+  min-width: 0;
+  color: var(--text, #edf2f7);
+  font: inherit;
+}
+
+.preflight-header,
+.preflight-wallet,
+.preflight-readiness,
+.preflight-start {
+  min-width: 0;
+  border: 1px solid var(--border, rgba(255, 255, 255, 0.14));
+  border-radius: 0.85rem;
+  padding: 0.85rem 1rem;
+  background: var(--surface, rgba(255, 255, 255, 0.045));
+}
+
+.preflight-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.room-preflight h2,
+.room-preflight h3,
+.room-preflight p,
+.room-preflight ul {
+  margin: 0;
+}
+
+.room-preflight h2 { font-size: 1.1rem; }
+.room-preflight h3 { margin-bottom: 0.55rem; font-size: 0.98rem; }
+.room-preflight p + p { margin-top: 0.3rem; }
+.preflight-variant { color: var(--muted, #bac5d3); font-size: 0.88rem; }
+.preflight-wallet-line,
+.preflight-seat-status,
+.preflight-seat-funding { overflow-wrap: anywhere; }
+.preflight-hold { font-weight: 700; }
+.preflight-shortfall,
+.preflight-warning { color: var(--warning, #ffd17a); }
+.preflight-ok { color: var(--success, #8be0b4); }
+.preflight-muted,
+.preflight-guest-note { color: var(--muted, #bac5d3); }
+.preflight-seats { display: grid; gap: 0.4rem; padding-left: 1.2rem; }
+.preflight-seats li { padding-left: 0.1rem; overflow-wrap: anywhere; }
+.preflight-seat-name { font-weight: 650; }
+.preflight-seat-name::after { content: ' · '; color: var(--muted, #bac5d3); font-weight: 400; }
+.preflight-seat-status,
+.preflight-seat-funding { color: var(--muted, #bac5d3); }
+.preflight-seat-funding { display: block; margin-top: 0.15rem; font-size: 0.88rem; }
+.preflight-host-funding { color: var(--muted, #bac5d3); font-size: 0.88rem; }
+.preflight-start-ok { border-color: rgba(93, 191, 137, 0.5); }
+.preflight-start-blocked { border-color: rgba(240, 176, 77, 0.55); }
+.preflight-start ul { display: grid; gap: 0.35rem; padding-left: 1.2rem; }
+.preflight-start li { overflow-wrap: anywhere; }
+
+@media (max-width: 520px) {
+  .preflight-header { align-items: flex-start; flex-direction: column; gap: 0.2rem; }
+  .preflight-header,
+  .preflight-wallet,
+  .preflight-readiness,
+  .preflight-start { padding: 0.75rem; }
+  .preflight-seats li { display: grid; gap: 0.1rem; }
+  .preflight-seat-name::after { content: ''; }
+}

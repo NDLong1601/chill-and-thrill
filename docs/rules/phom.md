@@ -1,6 +1,6 @@
 # Phỏm local v1
 
-Phạm vi này là một biến thể Phỏm LAN xác định cho Chill & Thrill, không phải tuyên bố thay thế mọi luật địa phương. Nó chỉ dùng chip ảo trên cùng máy chủ, không nạp/rút hay quy đổi tiền thật.
+Phạm vi này là một biến thể Phỏm LAN xác định cho Chill & Thrill, không phải tuyên bố thay thế mọi luật địa phương. Nó chỉ dùng coin ảo trên cùng máy chủ, không nạp/rút hay quy đổi tiền thật.
 
 ## Bàn và bài
 
@@ -31,11 +31,11 @@ Không được đánh lại lá đã ăn hoặc đánh một lá làm các lá 
 - Sau khi một người đã hạ, những người hạ sau có thể gửi lá rác của mình vào một phỏm công khai của người hạ trước, miễn thêm lá đó vẫn tạo bộ/dây hợp lệ. Không gửi vào phỏm của chính mình và không gửi vào người chưa hạ.
 - Lá đã hạ công khai; bài chưa hạ của người khác không bao giờ được gửi về client. Điểm được tính sau gửi.
 
-## Chip và thanh toán
+## Coin và thanh toán
 
-Đơn vị `S = 10 chip`. Engine chỉ ghi một settlement zero-sum khi kết thúc; hủy trước lá đánh đầu hoặc phòng hết hạn hoàn toàn khoản giữ.
+Đơn vị `S` do chủ bàn chọn khi tạo phòng (mặc định 10 coin), chấp nhận `500`, `1.000`, `10k`, `10tr`. Engine chỉ ghi một settlement zero-sum khi kết thúc; hủy trước lá đánh đầu hoặc phòng hết hạn hoàn toàn khoản giữ.
 
-| Tình huống | Chuyển chip | Quan hệ ưu tiên |
+| Tình huống | Chuyển coin | Quan hệ ưu tiên |
 |---|---:|---|
 | Ăn thường | người ăn → người đánh: `1S` | Cộng dồn đến settlement |
 | Ăn chốt | người ăn → người đánh: `2S` | Cộng dồn đến settlement |
@@ -50,13 +50,17 @@ Nếu có nhiều người cùng điểm thấp nhất, họ đồng hạng; kh�
 Một người đền mất tối đa `6S × (n − 1)`, với `n` là số người. Đây lớn hơn trường hợp không đền: tối đa bốn lần ăn (một lần có thể là chốt `2S`, tổng không quá `5S`) cộng nhiều nhất `(n − 1)S` tiền xếp điểm. Vì vậy mỗi người được giữ trước:
 
 ```text
-maxLoss = 6 × 10 × (n − 1) chip
+maxLoss = 6 × S × (n − 1) coin
 ```
 
-Tương ứng 60 / 120 / 180 chip cho bàn 2 / 3 / 4 người. Server không chia bài nếu toàn bộ khoản giữ này không thể tạo nguyên tử.
+Tương ứng 60 / 120 / 180 coin cho bàn 2 / 3 / 4 người. Server không chia bài nếu toàn bộ khoản giữ này không thể tạo nguyên tử.
 
 ## Kết nối lại và giới hạn
 
-- Mất kết nối trong lượt bốc/ăn, đánh hoặc hạ/gửi làm ván tạm dừng. Bài, lá vừa đánh, phỏm đã hạ, nghĩa vụ ăn và khoản giữ được snapshot để khôi phục sau restart.
-- Chủ phòng có thể hủy trước lá đánh đầu tiên; người rời giữa ván được gỡ ghế và đưa về sảnh sau khi settlement và kết quả đã ghi xong. Khi toàn bộ bàn mất kết nối quá 12 giờ, khoản giữ được hoàn có ghi sổ, kể cả khi thời hạn trôi qua trong lúc server tắt. Nạp lại snapshot cũ không hoàn chip lần thứ hai.
+- Mất kết nối trong lượt bốc/ăn, đánh hoặc hạ/gửi làm bàn tạm dừng tối đa 120 giây. Deadline, bài, lá vừa đánh, phỏm đã hạ, nghĩa vụ ăn và khoản giữ được snapshot để khôi phục sau restart; restart lặp lại không cấp lại grace.
+- Hết grace, ván tiếp tục và server tự rút, hạ hoặc bỏ lá hợp lệ khi ghế vắng đến lượt. Settlement và khoản giữ vẫn chạy theo luật; disconnect không hủy ván hoặc tự hoàn coin. Chủ phòng chỉ có thể hủy trước lá đánh đầu tiên; người rời giữa ván được cash-out sau khi settlement và kết quả đã ghi xong.
 - Không có timer, tái, ù khan/ù tròn, báo, gửi trước hạ, hoặc các luật phạt địa phương ngoài bảng trên.
+
+Mỗi lượt bốc/ăn và đánh có tổng cộng 30 giây. Hết giờ server tự bốc nếu cần, đánh lá được phép bỏ mà không phá phỏm bắt buộc của lá đã ăn; khi hạ sẽ dùng phương án phỏm hợp lệ. Đồng hồ giữ phần còn lại trong grace và lượt của ghế vắng được xử lý ngay khi grace hết. Phòng legacy trước reconnect policy 2 vẫn dùng quy tắc hết hạn 12 giờ để hoàn khoản giữ; bàn policy 2 không bị hủy do disconnect.
+
+Chủ bàn chọn **Chia ván tiếp** để giữ coin và chia ngay trên cùng bàn.

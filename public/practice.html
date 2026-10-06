@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#10151d">
+  <title>Luyện tập với bot · Chill &amp; Thrill</title>
+  <link rel="stylesheet" href="/css/practice.css">
+  <script defer src="/js/tien-len-rules.js"></script>
+  <script defer src="/js/practice.js"></script>
+</head>
+<body>
+  <div class="practice-shell">
+    <header class="topbar">
+      <a class="brand" href="/practice" aria-label="Chill &amp; Thrill luyện tập">
+        <span class="brand-mark">C<span>&amp;</span>T</span>
+        <span><strong>Chill &amp; Thrill</strong><small>Phòng luyện tập riêng</small></span>
+      </a>
+      <span class="sandbox-pill"><span class="pulse-dot"></span> Sandbox · không dùng ví thật</span>
+    </header>
+
+    <main>
+      <section class="hero" aria-labelledby="page-title">
+        <p class="eyebrow">Vào bàn ngay, không cần chờ bạn bè</p>
+        <h1 id="page-title">Tập một ván.<br><span>Hiểu luật bằng cách chơi.</span></h1>
+        <p class="hero-copy">Chơi với bot trên cùng bộ luật của ván thật. Điểm luyện tập không đổi coin, chip, gem, hồ sơ hay nhiệm vụ.</p>
+      </section>
+
+      <section id="setup-card" class="setup-card" aria-labelledby="setup-title">
+        <div class="section-heading">
+          <div><p class="eyebrow">Bắt đầu miễn phí</p><h2 id="setup-title">Chọn bàn luyện tập</h2></div>
+          <span class="step-number">01</span>
+        </div>
+        <form id="practice-form">
+          <label class="field-label" for="player-name">Tên hiển thị</label>
+          <input id="player-name" name="playerName" maxlength="40" autocomplete="nickname" value="Người chơi" required>
+
+          <label class="field-label" for="game-choice">Game và biến thể</label>
+          <select id="game-choice" name="game" required>
+            <option value="uno|classic-local-v1">UNO 112 lá</option>
+            <option value="tien-len|south-v1">Tiến lên miền Nam</option>
+            <option value="uno|classic-108-v1" disabled>UNO 108 lá — chưa hỗ trợ luyện tập</option>
+          </select>
+          <p class="field-hint">Chế độ UNO hiện hỗ trợ bộ 112 lá. Chọn UNO 112 để luyện ngay.</p>
+          <button class="primary-button" type="submit">Chia bài cho tôi <span aria-hidden="true">↗</span></button>
+        </form>
+        <div class="setup-foot"><span>✦</span> Điểm thắng chỉ tồn tại trong phiên này; đóng phiên để xóa.</div>
+      </section>
+
+      <section id="table-card" class="table-card" hidden aria-live="polite">
+        <div class="table-topline">
+          <div class="game-title"><span class="table-icon" id="table-icon">🃏</span><div><p class="eyebrow" id="variant-label">Biến thể</p><h2 id="table-title">Đang luyện tập</h2></div></div>
+          <button id="new-session" class="quiet-button" type="button">Phiên mới</button>
+        </div>
+        <div class="practice-note"><span>◎</span><span id="practice-label">Điểm luyện tập · chỉ trong phiên, không có giá trị và không vào ví</span></div>
+        <div class="score-row"><span>Thắng <strong id="human-wins">0</strong></span><span class="score-divider">·</span><span>Bot <strong id="bot-wins">0</strong></span><span class="session-clock" id="session-clock"></span></div>
+        <p id="table-status" class="table-status" role="status"></p>
+        <div id="board" class="board"></div>
+        <div id="action-area" class="action-area"></div>
+        <div class="table-bottom"><button id="close-session" class="text-button" type="button">Đóng phiên luyện tập</button><span id="bot-status" class="bot-status"></span></div>
+      </section>
+
+      <div id="notice" class="notice" role="alert" hidden></div>
+    </main>
+    <footer>Phiên luyện tập hết hạn tự động. Tải lại trang trong cùng tab để tiếp tục phiên hiện tại.</footer>
+  </div>
+</body>
+</html>

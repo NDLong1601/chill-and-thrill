@@ -14,15 +14,24 @@
   <link rel="stylesheet" href="/css/enhancements.css">
   <link rel="stylesheet" href="/css/table-layout.css">
   <link rel="stylesheet" href="/css/portal.css">
+  <link rel="stylesheet" href="/css/portal-home-mobile.css">
   <link rel="stylesheet" href="/css/uno-classic.css">
+  <link rel="stylesheet" href="/css/table-preferences.css">
+  <link rel="stylesheet" href="/css/preflight.css">
+  <link rel="stylesheet" href="/css/storage-status.css">
+  <link rel="icon" type="image/webp" href="/assets/game/logo.webp">
+  <link rel="apple-touch-icon" href="/assets/game/logo.webp">
+  <link rel="stylesheet" href="/css/game-art.css">
+  <link rel="stylesheet" href="/css/shared-ui.css">
+  <link rel="stylesheet" href="/css/context-help.css">
 </head>
 <body>
   <div id="rotate-device-overlay" class="rotate-device-overlay" role="alertdialog" aria-modal="true" aria-labelledby="rotate-device-title" aria-describedby="rotate-device-description" tabindex="-1" hidden>
     <div class="rotate-device-panel">
       <div class="rotate-device-icon" aria-hidden="true"><span class="rotate-phone"></span><span class="rotate-arrow">↻</span></div>
-      <span class="rotate-device-brand">THE GANG</span>
+      <span class="rotate-device-brand">CHILL &amp; THRILL</span>
       <h2 id="rotate-device-title">Vui lòng xoay ngang điện thoại</h2>
-      <p id="rotate-device-description">Xoay màn hình ngang để xem đầy đủ bàn chơi và tiếp tục vụ cướp.</p>
+      <p id="rotate-device-description">Xoay màn hình ngang để xem đầy đủ bàn chơi và các lá bài.</p>
       <p class="rotate-device-help">Nếu màn hình chưa xoay, hãy tắt khóa xoay màn hình trên điện thoại.</p>
       <button id="btn-rotate-fullscreen" class="btn btn-gold">⛶ Chơi toàn màn hình</button>
     </div>
@@ -34,72 +43,321 @@
        MÀN HÌNH 1: TRANG CHỦ CỔNG GAME
   ══════════════════════════════════════════════════ -->
   <div id="screen-home" class="screen active">
-    <main class="portal-home" aria-labelledby="portal-title">
-      <header class="portal-header">
-        <div>
-          <span class="portal-kicker">LAN · LOCAL · CÙNG PHÒNG</span>
-          <h1 id="portal-title">CỔNG GAME</h1>
-          <p id="portal-tagline">Chọn một bàn chơi, mời bạn bè cùng WiFi và bắt đầu ngay.</p>
-        </div>
-        <div class="portal-status-card">
-          <span class="portal-status-dot" aria-hidden="true"></span>
-          <span>Server nội bộ</span>
-          <small id="portal-wallet-note">Ví chip và nhiệm vụ nội bộ trên server local</small>
-        </div>
-      </header>
+    <!-- THANH MENU CHÍNH VÀ ĐIỀU HƯỚNG TAB -->
+    <nav class="portal-navbar" id="portal-navbar" aria-label="Thanh menu chính">
+      <div class="portal-navbar-inner">
+        <!-- Brand / Logo -->
+        <a href="/" class="portal-nav-brand" data-portal-home title="Trang chủ Chill &amp; Thrill">
+          <img class="portal-nav-logo" src="/assets/game/logo.webp" alt="Chill &amp; Thrill" width="46" height="46">
+          <div class="portal-brand-meta">
+            <span class="portal-brand-name">CHILL &amp; THRILL</span>
+            <span class="portal-brand-badge"><span class="portal-status-dot" aria-hidden="true"></span> CHƠI CÙNG BẠN BÈ</span>
+          </div>
+        </a>
 
-      <section class="portal-identity portal-panel" aria-labelledby="portal-identity-title">
-        <div><h2 id="portal-identity-title">Tên hiển thị</h2><p>Dùng tên này khi vào phòng LAN. Không cần tài khoản cloud.</p></div>
-        <div class="portal-identity-controls">
-          <input id="portal-player-name" class="form-input" maxlength="18" autocomplete="nickname" placeholder="Nhập biệt danh của bạn">
-          <div id="portal-avatar-picker" class="portal-avatar-picker" aria-label="Chọn avatar">
-            <button type="button" class="portal-avatar active" data-avatar="🕶️">🕶️</button><button type="button" class="portal-avatar" data-avatar="🥷">🥷</button><button type="button" class="portal-avatar" data-avatar="💻">💻</button><button type="button" class="portal-avatar" data-avatar="🔓">🔓</button><button type="button" class="portal-avatar" data-avatar="🎲">🎲</button><button type="button" class="portal-avatar" data-avatar="🏎️">🏎️</button>
+        <!-- Điều hướng Tab chính: Sảnh game & Hồ sơ người chơi -->
+        <div class="portal-nav-tabs" role="tablist" aria-label="Chọn tab hiển thị">
+          <button type="button" role="tab" id="btn-tab-lobby" class="portal-nav-tab active" data-tab="lobby" aria-selected="true" aria-controls="tab-lobby">
+            <span class="nav-icon">🎮</span>
+            <span>Sảnh game</span>
+          </button>
+          <button type="button" role="tab" id="btn-tab-profile" class="portal-nav-tab" data-tab="profile" aria-selected="false" aria-controls="portal-account">
+            <span class="nav-icon">👤</span>
+            <span>Hồ sơ người chơi</span>
+          </button>
+        </div>
+
+        <!-- Menu cuộn nhanh danh mục khi ở Sảnh -->
+        <div class="portal-nav-menu">
+          <a href="#room-entry-section" class="portal-nav-link" data-nav-target="room">
+            <span class="nav-icon">🎟️</span>
+            <span>Vào phòng</span>
+          </a>
+          <a href="#casual-section" class="portal-nav-link" data-nav-target="casual">
+            <span class="nav-icon">🎪</span>
+            <span>Giải trí</span>
+          </a>
+          <a href="#thrill-section" class="portal-nav-link" data-nav-target="thrill">
+            <span class="nav-icon">🔥</span>
+            <span>Kịch tính</span>
+          </a>
+          <a href="/group-lobby" class="portal-nav-link">
+            <span class="nav-icon">👥</span>
+            <span>Sảnh nhóm</span>
+          </a>
+          <a href="/tutorial.html" class="portal-nav-link">
+            <span class="nav-icon">🎓</span>
+            <span>Hướng dẫn game</span>
+          </a>
+        </div>
+
+        <!-- Quick Balances & Profile Button -->
+        <div class="portal-nav-actions">
+          <div class="portal-nav-balances" id="portal-nav-balances-btn" title="Xem ví &amp; số dư" role="button" tabindex="0">
+            <div class="nav-pill pill-chip" title="Chip Poker khả dụng">
+              <img class="resource-icon" src="/assets/game/chip.webp" alt="Chip">
+              <span id="portal-nav-chip">—</span>
+            </div>
+            <div class="nav-pill pill-coin" title="Coin">
+              <img class="resource-icon" src="/assets/game/coin.webp" alt="Coin">
+              <span data-balance="coin">—</span>
+            </div>
+            <div class="nav-pill pill-gem" title="Gem">
+              <img class="resource-icon" src="/assets/game/gem.webp" alt="Gem">
+              <span data-balance="gem">—</span>
+            </div>
+          </div>
+
+          <button type="button" id="btn-toggle-profile" class="btn-nav-profile" title="Xem hồ sơ người chơi">
+            <span id="portal-nav-avatar" class="nav-user-avatar">🕶️</span>
+            <span id="portal-nav-name" class="nav-user-name">Hồ sơ &amp; Ví</span>
+          </button>
+        </div>
+      </div>
+    </nav>
+
+    <main class="portal-home" aria-labelledby="portal-title">
+      <!-- ══════════════════════════════════════════════════
+           TAB 1: SẢNH TRÒ CHƠI
+      ══════════════════════════════════════════════════ -->
+      <div id="tab-lobby" class="portal-tab-pane portal-tab-lobby" role="tabpanel" aria-labelledby="btn-tab-lobby">
+        <header class="portal-header portal-hero">
+          <div class="portal-hero-brand">
+            <span class="portal-kicker">MỘT BÀN CHƠI · NHIỀU NIỀM VUI</span>
+            <div class="portal-hero-logo-wrap">
+              <img class="portal-logo" src="/assets/game/logo.webp" alt="Chill &amp; Thrill" width="640" height="383">
+            </div>
+            <h1 id="portal-title" class="art-card-label">CỔNG GAME</h1>
+            <p id="portal-tagline">Chọn một bàn chơi, mời bạn bè cùng WiFi và bắt đầu ngay.</p>
+
+          </div>
+
+          <!-- PHẦN VÀO PHÒNG ĐƯỢC CHUYỂN LÊN TRONG HERO BANNER -->
+          <section id="room-entry-section" class="portal-panel portal-hero-room-entry" aria-labelledby="portal-room-title">
+            <div class="portal-hero-room-head">
+              <span class="portal-kicker">ĐÃ CÓ MÃ PHÒNG?</span>
+              <h2 id="portal-room-title">Vào thẳng bàn chơi</h2>
+              <p>Nhập mã 4 ký tự. Phòng riêng sẽ hỏi thêm mật khẩu.</p>
+            </div>
+            <div id="portal-entry-identity" class="portal-entry-identity"></div>
+            <div class="portal-room-form">
+              <input id="portal-room-code" inputmode="text" autocapitalize="characters" aria-label="Mã phòng 4 ký tự" class="form-input code-input" maxlength="4" autocomplete="off" placeholder="MÃ PHÒNG" spellcheck="false">
+
+              <button id="portal-join" class="btn btn-primary btn-gold">VÀO PHÒNG →</button>
+            </div>
+            <button id="portal-watch" type="button" class="btn-text">Xem với tư cách khán giả</button>
+            <div id="portal-error" class="alert-box error hidden" role="alert"></div>
+
+          </section>
+        </header>
+
+        <section id="portal-continue" class="portal-panel portal-continue hidden" aria-live="polite">
+          <div>
+            <span class="portal-kicker">PHIÊN ĐANG LƯU</span>
+            <h2>Tiếp tục phòng <span id="portal-continue-code">----</span></h2>
+            <p>Ghế, bài và lịch sử vẫn ở trên server. Xem trang chủ không rời ghế. Rời ván UNO đang chơi sẽ hủy ván đó.</p>
+          </div>
+          <div class="portal-continue-buttons">
+            <button id="portal-resume" class="btn btn-gold">TIẾP TỤC PHÒNG</button>
+            <button id="portal-leave" class="btn btn-outline">RỜI PHÒNG</button>
+          </div>
+        </section>
+
+        <section id="portal-shortcuts" class="portal-shortcuts" aria-labelledby="portal-shortcuts-title">
+          <div class="portal-shortcuts-heading">
+            <div><span class="portal-kicker">VÀO BÀN NHANH</span><h2 id="portal-shortcuts-title">Game của bạn</h2></div>
+            <p>“Tạo phòng” mở cấu hình để bạn xác nhận bàn trước khi gửi lên máy chủ.</p>
+          </div>
+          <div class="portal-category-filters" role="group" aria-label="Lọc danh mục game">
+            <button type="button" class="portal-filter-button" data-category-filter="all" aria-pressed="true">Tất cả</button>
+            <button type="button" class="portal-filter-button" data-category-filter="casual" aria-pressed="false">🎪 Giải trí</button>
+            <button type="button" class="portal-filter-button" data-category-filter="thrill" aria-pressed="false">🔥 Kịch tính</button>
+          </div>
+          <p id="portal-preference-status" class="portal-preference-status" role="status" aria-live="polite" hidden></p>
+          <div class="portal-personal-grid">
+            <section class="portal-personal-list" aria-labelledby="portal-favorites-title">
+              <div class="portal-personal-title"><h3 id="portal-favorites-title">★ Yêu thích</h3><span>Trên thiết bị này</span></div>
+              <div id="portal-favorite-games" class="portal-shortcut-grid"><p class="portal-shortcut-empty">Chưa có game yêu thích. Nhấn dấu sao trên một thẻ game để lưu.</p></div>
+            </section>
+            <section class="portal-personal-list" aria-labelledby="portal-recent-title">
+              <div class="portal-personal-title"><h3 id="portal-recent-title">↻ Chơi gần đây</h3><span>Ghi sau khi vào phòng thành công</span></div>
+              <div id="portal-recent-games" class="portal-shortcut-grid"><p class="portal-shortcut-empty">Các game bạn tạo hoặc vào sẽ xuất hiện ở đây.</p></div>
+            </section>
+          </div>
+        </section>
+
+        <section id="casual-section" class="portal-category" data-category-section="casual" aria-labelledby="casual-title">
+          <div class="portal-section-heading">
+            <div><span class="portal-kicker">NHẸ NHÀNG · CÙNG ĐỘI</span><h2 id="casual-title">Giải trí</h2></div>
+            <span class="portal-section-note">Chơi cùng bạn bè · 2–6 người</span>
+          </div>
+          <div id="casual-games" class="portal-game-grid"><div class="portal-loading">Đang tải danh mục từ server…</div></div>
+        </section>
+
+        <section id="thrill-section" class="portal-category" data-category-section="thrill" aria-labelledby="thrill-title">
+          <div class="portal-section-heading">
+            <div><span class="portal-kicker">CĂNG THẲNG · CHIP ẢO</span><h2 id="thrill-title"><img class="resource-icon" src="/assets/game/chip.webp" alt="" width="24" height="24"> Kịch tính</h2></div>
+            <span class="portal-section-note">Đấu trí cùng bạn bè</span>
+          </div>
+          <div id="thrill-games" class="portal-game-grid"><div class="portal-loading">Đang tải danh mục từ server…</div></div>
+        </section>
+
+
+      </div>
+
+      <!-- ══════════════════════════════════════════════════
+           TAB 2: HỒ SƠ NGƯỜI CHƠI (TAB RIÊNG BIỆT)
+      ══════════════════════════════════════════════════ -->
+      <section id="portal-account" class="portal-tab-pane portal-tab-profile portal-account" role="tabpanel" aria-labelledby="portal-account-title">
+        <div class="portal-profile-container">
+          <!-- Tiêu đề hồ sơ -->
+          <div class="portal-profile-header">
+            <div class="portal-profile-title-group">
+              <span class="portal-kicker">HỒ SƠ &amp; VÍ</span>
+              <h2 id="portal-account-title">Hồ sơ người chơi</h2>
+              <p id="portal-account-note">Tên, số dư và lịch sử chơi của bạn.</p>
+            </div>
+          </div>
+
+          <div class="portal-account-layout">
+            <aside class="portal-account-sidebar" aria-label="Điều hướng hồ sơ và ví">
+              <div class="portal-account-sidebar-heading">
+                <span class="portal-kicker">KHÔNG GIAN CÁ NHÂN</span>
+                <h3>Quản lý tài khoản</h3>
+              </div>
+              <div class="portal-account-subtabs" role="tablist" aria-label="Các mục hồ sơ" aria-orientation="vertical">
+                <button type="button" id="account-tab-overview" class="portal-account-subtab active" role="tab" aria-selected="true" aria-controls="account-panel-overview" data-account-tab="overview" tabindex="0">
+                  <span class="portal-account-tab-icon" aria-hidden="true">👤</span><span class="portal-account-tab-copy"><strong>Tổng quan</strong><small>Hồ sơ và số dư</small></span><span class="portal-account-tab-arrow" aria-hidden="true">›</span>
+                </button>
+                <button type="button" id="account-tab-wallet" class="portal-account-subtab" role="tab" aria-selected="false" aria-controls="account-panel-wallet" data-account-tab="wallet" tabindex="-1">
+                  <span class="portal-account-tab-icon" aria-hidden="true">💱</span><span class="portal-account-tab-copy"><strong>Ví &amp; quy đổi</strong><small>Coin và gem</small></span><span class="portal-account-tab-arrow" aria-hidden="true">›</span>
+                </button>
+                <button type="button" id="account-tab-missions" class="portal-account-subtab" role="tab" aria-selected="false" aria-controls="account-panel-missions" data-account-tab="missions" tabindex="-1">
+                  <span class="portal-account-tab-icon" aria-hidden="true">🎯</span><span class="portal-account-tab-copy"><strong>Nhiệm vụ</strong><small>Tiến độ và phần thưởng</small></span><span class="portal-account-tab-arrow" aria-hidden="true">›</span>
+                </button>
+                <button type="button" id="account-tab-history" class="portal-account-subtab" role="tab" aria-selected="false" aria-controls="account-panel-history" data-account-tab="history" tabindex="-1">
+                  <span class="portal-account-tab-icon" aria-hidden="true">🧾</span><span class="portal-account-tab-copy"><strong>Lịch sử ví</strong><small>Các giao dịch gần đây</small></span><span class="portal-account-tab-arrow" aria-hidden="true">›</span>
+                </button>
+              </div>
+              <div class="portal-account-sidebar-actions" role="group" aria-label="Tác vụ hồ sơ">
+                <button id="portal-account-refresh" class="btn btn-outline" type="button" title="Làm mới trạng thái">↻ Làm mới dữ liệu</button>
+                <a href="/profile" class="btn btn-outline" title="Sao lưu hoặc khôi phục hồ sơ">🛡️ Sao lưu / khôi phục</a>
+                <button type="button" id="btn-profile-exit" class="btn btn-secondary btn-exit-lobby" title="Trở về sảnh trò chơi">← Về sảnh game</button>
+              </div>
+            </aside>
+            <div class="portal-account-content">
+              <section id="account-panel-overview" class="portal-account-panel" role="tabpanel" aria-labelledby="account-tab-overview" data-account-panel="overview" tabindex="0">
+                <div class="portal-profile-card portal-identity-card" aria-labelledby="portal-identity-title">
+                  <div class="portal-profile-card-header">
+                    <h3 id="portal-identity-title">🎭 Danh tính người chơi</h3>
+                    <p>Biệt danh và biểu tượng này sẽ hiển thị với bạn bè khi vào bàn chơi LAN.</p>
+                  </div>
+                  <div class="portal-identity-controls">
+                    <div class="portal-field">
+                      <label for="portal-player-name" class="portal-field-label">Tên hiển thị (Biệt danh)</label>
+                      <input id="portal-player-name" class="form-input profile-name-input" maxlength="18" autocomplete="nickname" placeholder="Nhập biệt danh của bạn">
+                    </div>
+                    <div class="portal-field">
+                      <label class="portal-field-label">Chọn Avatar</label>
+                      <div id="portal-avatar-picker" class="portal-avatar-picker" aria-label="Chọn avatar">
+                        <button type="button" class="portal-avatar active" data-avatar="🕶️">🕶️</button>
+                        <button type="button" class="portal-avatar" data-avatar="🥷">🥷</button>
+                        <button type="button" class="portal-avatar" data-avatar="💻">💻</button>
+                        <button type="button" class="portal-avatar" data-avatar="🔓">🔓</button>
+                        <button type="button" class="portal-avatar" data-avatar="🎲">🎲</button>
+                        <button type="button" class="portal-avatar" data-avatar="🏎️">🏎️</button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div class="portal-account-grid">
+                  <div class="portal-stat stat-card-profile">
+                    <span>Hồ sơ</span>
+                    <strong id="portal-profile-label">Chưa tạo</strong>
+                    <small id="portal-profile-scope">Server local</small>
+                  </div>
+                  <div class="portal-stat stat-card-chip">
+                    <span><img class="resource-icon" src="/assets/game/chip.webp" alt=""> Chip Poker</span>
+                    <strong id="portal-wallet-available">—</strong>
+                    <small>Giữ: <b id="portal-wallet-reserved">—</b> · Stack: <b id="portal-wallet-ingame">—</b></small>
+                  </div>
+                  <div class="portal-stat stat-card-coin">
+                    <span><img class="resource-icon" src="/assets/game/coin.webp" alt=""> Coin</span>
+                    <strong data-balance="coin">—</strong>
+                    <small>Tiến lên / Sâm / Phỏm · Giữ: <b data-coin-reserved>—</b></small>
+                  </div>
+                  <div class="portal-stat stat-card-gem">
+                    <span><img class="resource-icon" src="/assets/game/gem.webp" alt=""> Gem</span>
+                    <strong data-balance="gem">—</strong>
+                    <small>Quy đổi từ coin</small>
+                  </div>
+                </div>
+              </section>
+
+              <section id="account-panel-wallet" class="portal-account-panel" role="tabpanel" aria-labelledby="account-tab-wallet" data-account-panel="wallet" tabindex="0" hidden>
+                <div class="portal-profile-card portal-exchange-card">
+                  <div class="portal-profile-card-header">
+                    <h3>💱 Ví và quy đổi</h3>
+                    <p>Coin và gem dùng chung hồ sơ; chip Poker luôn được quản lý riêng.</p>
+                  </div>
+                  <form id="wallet-exchange" class="currency-exchange" hidden>
+                    <div class="exchange-title-row">
+                      <h3><img class="resource-icon" src="/assets/game/gem.webp" alt=""> Quy đổi Coin ⇄ Gem</h3>
+                      <p><strong data-exchange-rate>1 gem = 10.000.000 coin</strong> · Chip Poker có số dư riêng</p>
+                    </div>
+                    <div class="exchange-form-row">
+                      <label class="exchange-field">
+                        <span>Hướng quy đổi</span>
+                        <select name="direction" class="form-select">
+                          <option value="coin-to-gem">Coin → gem</option>
+                          <option value="gem-to-coin">Gem → coin</option>
+                        </select>
+                      </label>
+                      <label class="exchange-field">
+                        <span>Số gem</span>
+                        <input name="gems" type="number" min="1" step="1" value="1" inputmode="numeric" class="form-input" required>
+                      </label>
+                      <button type="submit" class="btn btn-gold btn-exchange-submit">Quy đổi ngay</button>
+                    </div>
+                    <p data-exchange-message role="status"></p>
+                  </form>
+                </div>
+              </section>
+
+              <section id="account-panel-missions" class="portal-account-panel" role="tabpanel" aria-labelledby="account-tab-missions" data-account-panel="missions" tabindex="0" hidden>
+                <div class="portal-column-box">
+                  <div class="portal-column-box-header">
+                    <h3>🎯 Nhiệm vụ hôm nay</h3>
+                    <span class="portal-badge-count">Thưởng coin</span>
+                  </div>
+                  <p class="portal-muted">Kiếm coin từ nhiệm vụ ngày và kết quả Tiến lên, Sâm, Phỏm. Chip Poker dùng riêng cho buy-in; không đổi chip sang coin.</p>
+                  <div id="portal-missions" class="portal-mission-list"><p class="portal-muted">Đang tải…</p></div>
+                </div>
+              </section>
+
+              <section id="account-panel-history" class="portal-account-panel" role="tabpanel" aria-labelledby="account-tab-history" data-account-panel="history" tabindex="0" hidden>
+                <div class="portal-column-box">
+                  <div class="portal-column-box-header">
+                    <h3>🧾 Lịch sử ví</h3>
+                    <span class="portal-badge-count">Giao dịch gần đây</span>
+                  </div>
+                  <div id="portal-wallet-history" class="portal-history-list"><p class="portal-muted">Chưa có giao dịch.</p></div>
+                </div>
+              </section>
+            </div>
           </div>
         </div>
       </section>
-
-      <section id="portal-account" class="portal-account portal-panel" aria-labelledby="portal-account-title">
-        <div class="portal-account-heading"><div><span class="portal-kicker">HỒ SƠ LOCAL</span><h2 id="portal-account-title">Hồ sơ & ví chip</h2><p id="portal-account-note">Dữ liệu chỉ nằm trên server LAN này. Tạo nhanh, không cần email.</p></div><button id="portal-account-refresh" class="btn btn-outline" type="button">↻ Làm mới</button></div>
-        <div class="portal-account-grid">
-          <div class="portal-stat"><span>Hồ sơ</span><strong id="portal-profile-label">Chưa tạo</strong><small id="portal-profile-scope">Server local</small></div>
-          <div class="portal-stat"><span>Có thể dùng</span><strong id="portal-wallet-available">—</strong><small>chip khả dụng</small></div>
-          <div class="portal-stat"><span>Đang giữ</span><strong id="portal-wallet-reserved">—</strong><small>chưa thanh toán</small></div>
-          <div class="portal-stat"><span>Trong bàn</span><strong id="portal-wallet-ingame">—</strong><small>stack / pot</small></div>
-        </div>
-        <div class="portal-account-columns">
-          <div><h3>🎯 Nhiệm vụ</h3><div id="portal-missions" class="portal-mission-list"><p class="portal-muted">Đang tải…</p></div></div>
-          <div><h3>🧾 Lịch sử chip</h3><div id="portal-wallet-history" class="portal-history-list"><p class="portal-muted">Chưa có giao dịch.</p></div></div>
-        </div>
-      </section>
-
-      <section class="portal-category" data-category-section="casual" aria-labelledby="casual-title">
-        <div class="portal-section-heading"><div><span class="portal-kicker">NHẸ NHÀNG · CÙNG ĐỘI</span><h2 id="casual-title">Giải trí</h2></div><span class="portal-section-note">Chơi cùng bạn bè</span></div>
-        <div id="casual-games" class="portal-game-grid"><div class="portal-loading">Đang tải danh mục từ server…</div></div>
-      </section>
-
-      <section class="portal-category" data-category-section="thrill" aria-labelledby="thrill-title">
-        <div class="portal-section-heading"><div><span class="portal-kicker">CĂNG THẲNG · CHIP ẢO</span><h2 id="thrill-title">Kịch tính</h2></div><span class="portal-section-note">Không có nạp/rút tiền</span></div>
-        <div id="thrill-games" class="portal-game-grid"><div class="portal-loading">Đang tải danh mục từ server…</div></div>
-      </section>
-
-      <section class="portal-panel portal-room-entry" aria-labelledby="portal-room-title">
-        <div><span class="portal-kicker">ĐÃ CÓ MÃ PHÒNG?</span><h2 id="portal-room-title">Vào thẳng bàn chơi</h2><p>Link mời cũ <code>/?room=ABCD</code> và QR vẫn dùng được.</p></div>
-        <div class="portal-room-form"><input id="portal-room-code" class="form-input code-input" maxlength="4" autocomplete="off" placeholder="MÃ PHÒNG"><input id="portal-room-password" class="form-input" type="password" maxlength="64" autocomplete="off" placeholder="Mật khẩu nếu có"><button id="portal-join" class="btn btn-primary">VÀO PHÒNG →</button></div>
-        <div id="portal-error" class="alert-box error hidden" role="alert"></div>
-      </section>
-
-      <section id="portal-continue" class="portal-panel portal-continue hidden" aria-live="polite"><div><span class="portal-kicker">PHIÊN ĐANG LƯU</span><h2>Tiếp tục phòng <span id="portal-continue-code">----</span></h2><p>Ghế, bài và lịch sử vẫn ở trên server. Xem trang chủ không rời ghế.</p></div><button id="portal-resume" class="btn btn-gold">TIẾP TỤC PHÒNG</button></section>
-      <div class="portal-home-footer"><button id="portal-tutorial" class="btn-text">🎓 Hướng dẫn The Gang</button><span>Chip chỉ có giá trị nội bộ trên server local; không có nạp/rút hoặc quy đổi.</span></div>
     </main>
   </div>
 
   <div id="screen-game-detail" class="screen">
     <main class="portal-detail" aria-labelledby="detail-title">
       <button class="btn-text portal-back-home" data-portal-home>← Về trang chủ</button>
-      <section class="portal-detail-hero portal-panel"><span id="detail-category" class="portal-kicker">GIẢI TRÍ</span><h1 id="detail-title">The Gang</h1><p id="detail-description"></p><div id="detail-status" class="portal-detail-status"></div><div id="detail-meta" class="portal-detail-meta"></div></section>
+      <section class="portal-detail-hero portal-panel"><span id="detail-category" class="portal-kicker">GIẢI TRÍ</span><h1 id="detail-title">The Gang</h1><p id="detail-description"></p><div id="detail-status" class="portal-detail-status"></div><div id="detail-meta" class="portal-detail-meta"></div><div id="detail-tutorial-wrap" style="margin-top: 12px;"><button type="button" id="btn-detail-tutorial" class="btn btn-outline">🎓 Xem hướng dẫn The Gang</button></div></section>
       <section class="portal-panel"><div class="portal-section-heading"><h2>Luật nhanh</h2><span id="detail-rules-version"></span></div><div id="detail-rules" class="portal-rules"></div></section>
-      <section id="detail-create-panel" class="portal-panel"><div class="portal-section-heading"><div><span class="portal-kicker">PHÒNG MỚI</span><h2>Tạo phòng</h2></div><span>Server kiểm tra cấu hình</span></div><div class="portal-form-grid"><label>Tên phòng<input id="detail-room-name" class="form-input" maxlength="32" value="The Gang · Phòng LAN"></label><label>Số người tối đa<select id="detail-max-players" class="form-select"><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option><option value="6" selected>6</option></select></label><label>Quyền truy cập<select id="detail-visibility" class="form-select"><option value="public">Công khai trong LAN</option><option value="invite">Chỉ qua lời mời</option></select></label><label>Mật khẩu tùy chọn<input id="detail-password" class="form-input" type="password" maxlength="64" autocomplete="new-password" placeholder="Để trống nếu không dùng"></label><label id="detail-difficulty-field">Độ khó The Gang<select id="detail-difficulty" class="form-select"><option value="BASIC">Cơ bản</option><option value="ADVANCED" selected>Nâng cao</option><option value="EXPERT">Chuyên nghiệp</option><option value="MASTER_THIEF">Siêu trộm</option></select></label></div><p id="detail-variant-note" class="portal-note">BASIC / ADVANCED / EXPERT / MASTER_THIEF là độ khó riêng của The Gang, không phải category hay game variant.</p><button id="detail-create" class="btn btn-gold">🏦 TẠO PHÒNG THE GANG</button><div id="detail-error" class="alert-box error hidden" role="alert"></div></section>
-      <section id="detail-coming-soon" class="portal-panel hidden"><h2>Game này chưa phát hành</h2><p>Danh mục đã có trên server nhưng engine chưa được bật. Không thể tạo phòng bằng UI hoặc API.</p></section>
+      <section id="detail-create-panel" class="portal-panel"><div class="portal-section-heading"><div><span class="portal-kicker">PHÒNG MỚI</span><h2>Tạo phòng</h2></div><span>Thiết lập bàn chơi</span></div><div class="portal-form-grid"><label>Tên phòng<input id="detail-room-name" class="form-input" maxlength="32" value="The Gang · Phòng LAN"></label><label>Số người tối đa<select id="detail-max-players" class="form-select"><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option><option value="6" selected>6</option></select></label><label>Quyền truy cập<select id="detail-visibility" class="form-select"><option value="public">Công khai trong LAN</option><option value="invite">Chỉ qua lời mời</option></select></label><label>Mật khẩu 6 chữ số (tùy chọn)<input id="detail-password" class="form-input" type="password" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" autocomplete="new-password" placeholder="Để trống để chơi không mật khẩu"></label><label id="detail-difficulty-field">Độ khó The Gang<select id="detail-difficulty" class="form-select"><option value="BASIC">Cơ bản</option><option value="ADVANCED" selected>Nâng cao</option><option value="EXPERT">Chuyên nghiệp</option><option value="MASTER_THIEF">Siêu trộm</option></select></label></div><p id="detail-variant-note" class="portal-note">Chọn mức thử thách phù hợp với đội chơi.</p><button id="detail-create" class="btn btn-gold">🏦 TẠO PHÒNG THE GANG</button><div id="detail-error" class="alert-box error hidden" role="alert"></div></section>
+      <section id="detail-coming-soon" class="portal-panel hidden"><h2>Game đang hoàn thiện</h2><p>Trò chơi đang trong quá trình phát triển. Vui lòng quay lại sau!</p></section>
     </main>
   </div>
 
@@ -111,7 +369,7 @@
   <div id="screen-lobby" class="screen">
     <div class="lobby-container">
       <button class="btn-text portal-back-home" data-portal-home>← Về cổng game</button>
-      
+
       <!-- Top Branding -->
       <div class="lobby-brand">
         <div class="vault-emblem">
@@ -218,10 +476,10 @@
   ══════════════════════════════════════════════════ -->
   <div id="screen-waiting" class="screen">
     <div class="waiting-container">
-      
+
       <div class="waiting-header">
-        <span class="badge-tag">PHÒNG CHỜ KẾ HOẠCH</span>
-        <h2 class="waiting-title">CHUẨN BỊ BĂNG ĐẢNG</h2>
+        <span id="waiting-badge" class="badge-tag">PHÒNG CHỜ KẾ HOẠCH</span>
+        <h2 id="waiting-title" class="waiting-title">CHUẨN BỊ BĂNG ĐẢNG</h2>
       </div>
 
       <!-- Mã phòng to nổi bật -->
@@ -297,7 +555,7 @@
   <div id="screen-uno" class="screen">
     <main class="uno-shell" aria-labelledby="uno-title">
       <header class="uno-topbar">
-        <div><span class="uno-kicker">GIẢI TRÍ · CLASSIC LOCAL V1</span><h1 id="uno-title">UNO</h1><p id="uno-room-label"></p></div>
+        <div><span class="uno-kicker">GIẢI TRÍ · 112 LÁ</span><h1 id="uno-title">UNO</h1><p id="uno-room-label"></p></div>
         <div class="uno-top-actions"><span id="uno-turn-label" class="uno-turn-label"></span><button id="uno-rules-btn" class="btn btn-outline btn-sm">📖 Luật UNO</button><button id="uno-leave-btn" class="btn btn-outline btn-sm">Rời phòng</button></div>
       </header>
       <section id="uno-status" class="uno-status" role="status" aria-live="polite"></section>
@@ -323,7 +581,7 @@
 
     <!-- Top Navigation Header -->
     <header class="table-topbar">
-      
+
       <div class="topbar-left">
         <div class="table-brand">THE GANG</div>
         <div class="heist-badge" id="disp-heist-num">VỤ CƯỚP #1</div>
@@ -388,7 +646,7 @@
 
       <!-- Bàn Poker Casino Sang Trọng -->
       <div class="poker-table" id="poker-table">
-        
+
         <!-- Họa tiết Logo Chìm & Đường May Vàng Bàn Cược -->
         <div class="table-felt-watermark">
           <div class="tfw-emblem">🏦 ♠ ♥ ♦ ♣</div>
@@ -404,7 +662,7 @@
 
         <!-- KHU VỰC TRUNG TÂM BÀN NỈ (LÁ CHUNG + CHIP POOL) -->
         <div class="table-centerpiece">
-          
+
           <!-- 5 Lá Bài Chung -->
           <div class="community-zone">
             <div class="zone-label">BÀI CHUNG</div>
@@ -434,7 +692,7 @@
 
     <!-- Khu vực Người Chơi Của Tôi (My Station) -->
     <footer class="my-player-station" id="my-player-station" aria-label="Bài và chip của bạn">
-      
+
       <!-- My Info & Lá Bài Tẩy Của Tôi -->
       <div class="my-hand-container">
         <div class="my-info-row">
@@ -457,7 +715,7 @@
       <div class="my-chips-tracker">
         <div class="tracker-title">CHIP CỦA BẠN QUA 4 VÒNG</div>
         <div class="four-chips-grid">
-          
+
           <div class="chip-column" id="col-white">
             <span class="col-lbl">V1 TRẮNG</span>
             <div class="chip-socket-lg" id="my-chip-white"><span class="empty-star">-</span></div>
@@ -491,7 +749,7 @@
         <div class="round-status-box" id="round-status-box">
           <span id="round-chip-status">Đang chờ mọi người chọn chip...</span>
         </div>
-        
+
         <button id="btn-advance-phase" class="btn btn-gold btn-advance hidden">
           MỞ FLOP (3 LÁ) →
         </button>
@@ -504,7 +762,7 @@
          WIDGET ĐA NĂNG: TRÒ CHUYỆN & NHẬT KÝ (DRAWER)
     ══════════════════════════════════════════════════ -->
     <aside class="comm-dock-panel dock-collapsed" id="comm-dock-panel">
-      
+
       <div class="dock-tabs-header">
         <button class="dock-tab-btn active" id="tab-btn-chat">💬 Trò Chuyện</button>
         <button class="dock-tab-btn" id="tab-btn-log">📜 Nhật Ký Vụ Cướp</button>
@@ -513,7 +771,7 @@
 
       <!-- Tab Chat -->
       <div class="dock-tab-content active" id="tab-content-chat">
-        
+
         <!-- Quick chat presets -->
         <div class="quick-chips-scroll">
           <button class="qc-btn" data-text="Két này ngon ăn rồi! 🔓">Két này ngon! 🔓</button>
@@ -548,7 +806,7 @@
   ══════════════════════════════════════════════════ -->
   <div id="modal-player-action" class="modal-backdrop hidden">
     <div class="modal-dialog action-popover-dialog">
-      
+
       <div class="action-popover-header">
         <div class="aph-player">
           <span class="aph-avatar" id="pop-target-avatar">🕶️</span>
@@ -561,12 +819,12 @@
       </div>
 
       <div class="action-popover-body">
-        
+
         <!-- Khối cướp/đổi chip vòng hiện tại -->
         <div class="snatch-action-box">
           <div class="sab-title">CHIẾM ĐOẠT CHIP VÒNG HIỆN TẠI:</div>
           <div class="sab-status" id="pop-chip-status">Đang giữ chip: 3⭐</div>
-          
+
           <button id="btn-snatch-chip-action" class="btn btn-gold btn-block btn-snatch">
             <span class="sab-icon">⚡</span> CƯỚP CHIP CỦA NGƯỜI NÀY!
           </button>
@@ -602,7 +860,7 @@
   ══════════════════════════════════════════════════ -->
   <div id="modal-card-spotlight" class="modal-backdrop hidden">
     <div class="modal-dialog card-spotlight-dialog">
-      
+
       <div class="spotlight-header">
         <span class="spotlight-tag" id="spot-type-tag">⚡ THẺ THỬ THÁCH MỚI KÍCH HOẠT</span>
         <button class="close-modal-btn" data-close="modal-card-spotlight">✕</button>
@@ -648,7 +906,7 @@
   ══════════════════════════════════════════════════ -->
   <div id="modal-result" class="modal-backdrop hidden">
     <div class="modal-dialog result-dialog">
-      
+
       <div class="result-badge-banner" id="res-banner">
         <div class="res-icon" id="res-icon">🔓</div>
         <h2 class="res-title" id="res-title">VỤ CƯỚP THÀNH CÔNG!</h2>
@@ -700,7 +958,7 @@
   ══════════════════════════════════════════════════ -->
   <div id="modal-gameover" class="modal-backdrop hidden">
     <div class="modal-dialog gameover-dialog">
-      
+
       <div class="gameover-emblem" id="go-emblem">🏆</div>
       <h2 class="gameover-title" id="go-title">CHIẾN THẮNG HOÀNG GIA!</h2>
       <p class="gameover-subtitle" id="go-subtitle">Băng nhóm đã thành công phá sạch cả 3 két sắt của ngân hàng!</p>
@@ -789,11 +1047,11 @@
               <small>10, J, Q, K, A đồng chất cao nhất</small>
             </div>
             <div class="pr-cards-visual" title="10♠ J♠ Q♠ K♠ A♠">
-              <div class="pr-card-mini"><span class="pr-c-val">10</span><span class="pr-c-suit">♠</span></div>
-              <div class="pr-card-mini"><span class="pr-c-val">J</span><span class="pr-c-suit">♠</span></div>
-              <div class="pr-card-mini"><span class="pr-c-val">Q</span><span class="pr-c-suit">♠</span></div>
-              <div class="pr-card-mini"><span class="pr-c-val">K</span><span class="pr-c-suit">♠</span></div>
-              <div class="pr-card-mini"><span class="pr-c-val">A</span><span class="pr-c-suit">♠</span></div>
+              <div class="pr-card-mini has-card-art" aria-label="10♠"><img class="card-art" src="/assets/game/cards/10S.webp" alt="" draggable="false"><span class="art-card-label">10♠</span></div>
+              <div class="pr-card-mini has-card-art" aria-label="J♠"><img class="card-art" src="/assets/game/cards/JS.webp" alt="" draggable="false"><span class="art-card-label">J♠</span></div>
+              <div class="pr-card-mini has-card-art" aria-label="Q♠"><img class="card-art" src="/assets/game/cards/QS.webp" alt="" draggable="false"><span class="art-card-label">Q♠</span></div>
+              <div class="pr-card-mini has-card-art" aria-label="K♠"><img class="card-art" src="/assets/game/cards/KS.webp" alt="" draggable="false"><span class="art-card-label">K♠</span></div>
+              <div class="pr-card-mini has-card-art" aria-label="A♠"><img class="card-art" src="/assets/game/cards/AS.webp" alt="" draggable="false"><span class="art-card-label">A♠</span></div>
             </div>
           </div>
 
@@ -805,11 +1063,11 @@
               <small>5 lá liên tiếp cùng một chất</small>
             </div>
             <div class="pr-cards-visual" title="5♥ 6♥ 7♥ 8♥ 9♥">
-              <div class="pr-card-mini red"><span class="pr-c-val">5</span><span class="pr-c-suit">♥</span></div>
-              <div class="pr-card-mini red"><span class="pr-c-val">6</span><span class="pr-c-suit">♥</span></div>
-              <div class="pr-card-mini red"><span class="pr-c-val">7</span><span class="pr-c-suit">♥</span></div>
-              <div class="pr-card-mini red"><span class="pr-c-val">8</span><span class="pr-c-suit">♥</span></div>
-              <div class="pr-card-mini red"><span class="pr-c-val">9</span><span class="pr-c-suit">♥</span></div>
+              <div class="pr-card-mini red has-card-art" aria-label="5♥"><img class="card-art" src="/assets/game/cards/5H.webp" alt="" draggable="false"><span class="art-card-label">5♥</span></div>
+              <div class="pr-card-mini red has-card-art" aria-label="6♥"><img class="card-art" src="/assets/game/cards/6H.webp" alt="" draggable="false"><span class="art-card-label">6♥</span></div>
+              <div class="pr-card-mini red has-card-art" aria-label="7♥"><img class="card-art" src="/assets/game/cards/7H.webp" alt="" draggable="false"><span class="art-card-label">7♥</span></div>
+              <div class="pr-card-mini red has-card-art" aria-label="8♥"><img class="card-art" src="/assets/game/cards/8H.webp" alt="" draggable="false"><span class="art-card-label">8♥</span></div>
+              <div class="pr-card-mini red has-card-art" aria-label="9♥"><img class="card-art" src="/assets/game/cards/9H.webp" alt="" draggable="false"><span class="art-card-label">9♥</span></div>
             </div>
           </div>
 
@@ -821,11 +1079,11 @@
               <small>4 lá bài cùng giá trị</small>
             </div>
             <div class="pr-cards-visual" title="4 lá K + lá phụ 2♦">
-              <div class="pr-card-mini"><span class="pr-c-val">K</span><span class="pr-c-suit">♣</span></div>
-              <div class="pr-card-mini red"><span class="pr-c-val">K</span><span class="pr-c-suit">♦</span></div>
-              <div class="pr-card-mini red"><span class="pr-c-val">K</span><span class="pr-c-suit">♥</span></div>
-              <div class="pr-card-mini"><span class="pr-c-val">K</span><span class="pr-c-suit">♠</span></div>
-              <div class="pr-card-mini red kicker"><span class="pr-c-val">2</span><span class="pr-c-suit">♦</span></div>
+              <div class="pr-card-mini has-card-art" aria-label="K♣"><img class="card-art" src="/assets/game/cards/KC.webp" alt="" draggable="false"><span class="art-card-label">K♣</span></div>
+              <div class="pr-card-mini red has-card-art" aria-label="K♦"><img class="card-art" src="/assets/game/cards/KD.webp" alt="" draggable="false"><span class="art-card-label">K♦</span></div>
+              <div class="pr-card-mini red has-card-art" aria-label="K♥"><img class="card-art" src="/assets/game/cards/KH.webp" alt="" draggable="false"><span class="art-card-label">K♥</span></div>
+              <div class="pr-card-mini has-card-art" aria-label="K♠"><img class="card-art" src="/assets/game/cards/KS.webp" alt="" draggable="false"><span class="art-card-label">K♠</span></div>
+              <div class="pr-card-mini red kicker has-card-art" aria-label="2♦"><img class="card-art" src="/assets/game/cards/2D.webp" alt="" draggable="false"><span class="art-card-label">2♦</span></div>
             </div>
           </div>
 
@@ -837,11 +1095,11 @@
               <small>Bộ ba lá + Một đôi</small>
             </div>
             <div class="pr-cards-visual" title="Bộ 3 lá Q + Đôi 8">
-              <div class="pr-card-mini"><span class="pr-c-val">Q</span><span class="pr-c-suit">♠</span></div>
-              <div class="pr-card-mini red"><span class="pr-c-val">Q</span><span class="pr-c-suit">♥</span></div>
-              <div class="pr-card-mini red"><span class="pr-c-val">Q</span><span class="pr-c-suit">♦</span></div>
-              <div class="pr-card-mini"><span class="pr-c-val">8</span><span class="pr-c-suit">♣</span></div>
-              <div class="pr-card-mini"><span class="pr-c-val">8</span><span class="pr-c-suit">♠</span></div>
+              <div class="pr-card-mini has-card-art" aria-label="Q♠"><img class="card-art" src="/assets/game/cards/QS.webp" alt="" draggable="false"><span class="art-card-label">Q♠</span></div>
+              <div class="pr-card-mini red has-card-art" aria-label="Q♥"><img class="card-art" src="/assets/game/cards/QH.webp" alt="" draggable="false"><span class="art-card-label">Q♥</span></div>
+              <div class="pr-card-mini red has-card-art" aria-label="Q♦"><img class="card-art" src="/assets/game/cards/QD.webp" alt="" draggable="false"><span class="art-card-label">Q♦</span></div>
+              <div class="pr-card-mini has-card-art" aria-label="8♣"><img class="card-art" src="/assets/game/cards/8C.webp" alt="" draggable="false"><span class="art-card-label">8♣</span></div>
+              <div class="pr-card-mini has-card-art" aria-label="8♠"><img class="card-art" src="/assets/game/cards/8S.webp" alt="" draggable="false"><span class="art-card-label">8♠</span></div>
             </div>
           </div>
 
@@ -853,11 +1111,11 @@
               <small>5 lá cùng một chất (đồng chất)</small>
             </div>
             <div class="pr-cards-visual" title="5 lá đồng chất rô">
-              <div class="pr-card-mini red"><span class="pr-c-val">2</span><span class="pr-c-suit">♦</span></div>
-              <div class="pr-card-mini red"><span class="pr-c-val">5</span><span class="pr-c-suit">♦</span></div>
-              <div class="pr-card-mini red"><span class="pr-c-val">9</span><span class="pr-c-suit">♦</span></div>
-              <div class="pr-card-mini red"><span class="pr-c-val">J</span><span class="pr-c-suit">♦</span></div>
-              <div class="pr-card-mini red"><span class="pr-c-val">A</span><span class="pr-c-suit">♦</span></div>
+              <div class="pr-card-mini red has-card-art" aria-label="2♦"><img class="card-art" src="/assets/game/cards/2D.webp" alt="" draggable="false"><span class="art-card-label">2♦</span></div>
+              <div class="pr-card-mini red has-card-art" aria-label="5♦"><img class="card-art" src="/assets/game/cards/5D.webp" alt="" draggable="false"><span class="art-card-label">5♦</span></div>
+              <div class="pr-card-mini red has-card-art" aria-label="9♦"><img class="card-art" src="/assets/game/cards/9D.webp" alt="" draggable="false"><span class="art-card-label">9♦</span></div>
+              <div class="pr-card-mini red has-card-art" aria-label="J♦"><img class="card-art" src="/assets/game/cards/JD.webp" alt="" draggable="false"><span class="art-card-label">J♦</span></div>
+              <div class="pr-card-mini red has-card-art" aria-label="A♦"><img class="card-art" src="/assets/game/cards/AD.webp" alt="" draggable="false"><span class="art-card-label">A♦</span></div>
             </div>
           </div>
 
@@ -869,11 +1127,11 @@
               <small>5 lá có giá trị liên tiếp</small>
             </div>
             <div class="pr-cards-visual" title="Sảnh liên tiếp 7, 8, 9, 10, J">
-              <div class="pr-card-mini"><span class="pr-c-val">7</span><span class="pr-c-suit">♠</span></div>
-              <div class="pr-card-mini red"><span class="pr-c-val">8</span><span class="pr-c-suit">♥</span></div>
-              <div class="pr-card-mini red"><span class="pr-c-val">9</span><span class="pr-c-suit">♦</span></div>
-              <div class="pr-card-mini"><span class="pr-c-val">10</span><span class="pr-c-suit">♣</span></div>
-              <div class="pr-card-mini"><span class="pr-c-val">J</span><span class="pr-c-suit">♠</span></div>
+              <div class="pr-card-mini has-card-art" aria-label="7♠"><img class="card-art" src="/assets/game/cards/7S.webp" alt="" draggable="false"><span class="art-card-label">7♠</span></div>
+              <div class="pr-card-mini red has-card-art" aria-label="8♥"><img class="card-art" src="/assets/game/cards/8H.webp" alt="" draggable="false"><span class="art-card-label">8♥</span></div>
+              <div class="pr-card-mini red has-card-art" aria-label="9♦"><img class="card-art" src="/assets/game/cards/9D.webp" alt="" draggable="false"><span class="art-card-label">9♦</span></div>
+              <div class="pr-card-mini has-card-art" aria-label="10♣"><img class="card-art" src="/assets/game/cards/10C.webp" alt="" draggable="false"><span class="art-card-label">10♣</span></div>
+              <div class="pr-card-mini has-card-art" aria-label="J♠"><img class="card-art" src="/assets/game/cards/JS.webp" alt="" draggable="false"><span class="art-card-label">J♠</span></div>
             </div>
           </div>
 
@@ -885,11 +1143,11 @@
               <small>3 lá bài cùng giá trị</small>
             </div>
             <div class="pr-cards-visual" title="Bộ 3 lá 10">
-              <div class="pr-card-mini red"><span class="pr-c-val">10</span><span class="pr-c-suit">♥</span></div>
-              <div class="pr-card-mini red"><span class="pr-c-val">10</span><span class="pr-c-suit">♦</span></div>
-              <div class="pr-card-mini"><span class="pr-c-val">10</span><span class="pr-c-suit">♠</span></div>
-              <div class="pr-card-mini kicker"><span class="pr-c-val">4</span><span class="pr-c-suit">♣</span></div>
-              <div class="pr-card-mini red kicker"><span class="pr-c-val">7</span><span class="pr-c-suit">♦</span></div>
+              <div class="pr-card-mini red has-card-art" aria-label="10♥"><img class="card-art" src="/assets/game/cards/10H.webp" alt="" draggable="false"><span class="art-card-label">10♥</span></div>
+              <div class="pr-card-mini red has-card-art" aria-label="10♦"><img class="card-art" src="/assets/game/cards/10D.webp" alt="" draggable="false"><span class="art-card-label">10♦</span></div>
+              <div class="pr-card-mini has-card-art" aria-label="10♠"><img class="card-art" src="/assets/game/cards/10S.webp" alt="" draggable="false"><span class="art-card-label">10♠</span></div>
+              <div class="pr-card-mini kicker has-card-art" aria-label="4♣"><img class="card-art" src="/assets/game/cards/4C.webp" alt="" draggable="false"><span class="art-card-label">4♣</span></div>
+              <div class="pr-card-mini red kicker has-card-art" aria-label="7♦"><img class="card-art" src="/assets/game/cards/7D.webp" alt="" draggable="false"><span class="art-card-label">7♦</span></div>
             </div>
           </div>
 
@@ -901,11 +1159,11 @@
               <small>2 cặp bài cùng giá trị</small>
             </div>
             <div class="pr-cards-visual" title="Đôi J và Đôi 4">
-              <div class="pr-card-mini red"><span class="pr-c-val">J</span><span class="pr-c-suit">♦</span></div>
-              <div class="pr-card-mini"><span class="pr-c-val">J</span><span class="pr-c-suit">♠</span></div>
-              <div class="pr-card-mini red"><span class="pr-c-val">4</span><span class="pr-c-suit">♥</span></div>
-              <div class="pr-card-mini"><span class="pr-c-val">4</span><span class="pr-c-suit">♣</span></div>
-              <div class="pr-card-mini kicker"><span class="pr-c-val">A</span><span class="pr-c-suit">♠</span></div>
+              <div class="pr-card-mini red has-card-art" aria-label="J♦"><img class="card-art" src="/assets/game/cards/JD.webp" alt="" draggable="false"><span class="art-card-label">J♦</span></div>
+              <div class="pr-card-mini has-card-art" aria-label="J♠"><img class="card-art" src="/assets/game/cards/JS.webp" alt="" draggable="false"><span class="art-card-label">J♠</span></div>
+              <div class="pr-card-mini red has-card-art" aria-label="4♥"><img class="card-art" src="/assets/game/cards/4H.webp" alt="" draggable="false"><span class="art-card-label">4♥</span></div>
+              <div class="pr-card-mini has-card-art" aria-label="4♣"><img class="card-art" src="/assets/game/cards/4C.webp" alt="" draggable="false"><span class="art-card-label">4♣</span></div>
+              <div class="pr-card-mini kicker has-card-art" aria-label="A♠"><img class="card-art" src="/assets/game/cards/AS.webp" alt="" draggable="false"><span class="art-card-label">A♠</span></div>
             </div>
           </div>
 
@@ -917,11 +1175,11 @@
               <small>1 cặp bài cùng giá trị</small>
             </div>
             <div class="pr-cards-visual" title="Đôi Át">
-              <div class="pr-card-mini red"><span class="pr-c-val">A</span><span class="pr-c-suit">♥</span></div>
-              <div class="pr-card-mini"><span class="pr-c-val">A</span><span class="pr-c-suit">♣</span></div>
-              <div class="pr-card-mini red kicker"><span class="pr-c-val">9</span><span class="pr-c-suit">♦</span></div>
-              <div class="pr-card-mini kicker"><span class="pr-c-val">6</span><span class="pr-c-suit">♠</span></div>
-              <div class="pr-card-mini red kicker"><span class="pr-c-val">3</span><span class="pr-c-suit">♥</span></div>
+              <div class="pr-card-mini red has-card-art" aria-label="A♥"><img class="card-art" src="/assets/game/cards/AH.webp" alt="" draggable="false"><span class="art-card-label">A♥</span></div>
+              <div class="pr-card-mini has-card-art" aria-label="A♣"><img class="card-art" src="/assets/game/cards/AC.webp" alt="" draggable="false"><span class="art-card-label">A♣</span></div>
+              <div class="pr-card-mini red kicker has-card-art" aria-label="9♦"><img class="card-art" src="/assets/game/cards/9D.webp" alt="" draggable="false"><span class="art-card-label">9♦</span></div>
+              <div class="pr-card-mini kicker has-card-art" aria-label="6♠"><img class="card-art" src="/assets/game/cards/6S.webp" alt="" draggable="false"><span class="art-card-label">6♠</span></div>
+              <div class="pr-card-mini red kicker has-card-art" aria-label="3♥"><img class="card-art" src="/assets/game/cards/3H.webp" alt="" draggable="false"><span class="art-card-label">3♥</span></div>
             </div>
           </div>
 
@@ -933,11 +1191,11 @@
               <small>Không tạo thành kết hợp nào</small>
             </div>
             <div class="pr-cards-visual" title="Át là lá cao nhất">
-              <div class="pr-card-mini highlight-card"><span class="pr-c-val">A</span><span class="pr-c-suit">♠</span></div>
-              <div class="pr-card-mini red"><span class="pr-c-val">K</span><span class="pr-c-suit">♦</span></div>
-              <div class="pr-card-mini red"><span class="pr-c-val">10</span><span class="pr-c-suit">♥</span></div>
-              <div class="pr-card-mini"><span class="pr-c-val">7</span><span class="pr-c-suit">♣</span></div>
-              <div class="pr-card-mini red"><span class="pr-c-val">2</span><span class="pr-c-suit">♦</span></div>
+              <div class="pr-card-mini highlight-card has-card-art" aria-label="A♠"><img class="card-art" src="/assets/game/cards/AS.webp" alt="" draggable="false"><span class="art-card-label">A♠</span></div>
+              <div class="pr-card-mini red has-card-art" aria-label="K♦"><img class="card-art" src="/assets/game/cards/KD.webp" alt="" draggable="false"><span class="art-card-label">K♦</span></div>
+              <div class="pr-card-mini red has-card-art" aria-label="10♥"><img class="card-art" src="/assets/game/cards/10H.webp" alt="" draggable="false"><span class="art-card-label">10♥</span></div>
+              <div class="pr-card-mini has-card-art" aria-label="7♣"><img class="card-art" src="/assets/game/cards/7C.webp" alt="" draggable="false"><span class="art-card-label">7♣</span></div>
+              <div class="pr-card-mini red has-card-art" aria-label="2♦"><img class="card-art" src="/assets/game/cards/2D.webp" alt="" draggable="false"><span class="art-card-label">2♦</span></div>
             </div>
           </div>
         </div>
@@ -987,11 +1245,29 @@
       </div>
     </div>
   </div>
+
+  <script src="/js/game-art.js"></script>
   <script src="/socket.io/socket.io.js"></script>
+  <script src="/js/game-values.js"></script>
+  <script src="/js/mobile-ui.js"></script>
+  <script src="/js/table-preferences.js"></script>
   <script src="/js/app.js"></script>
+  <script src="/js/room-access.js"></script>
   <script src="/js/enhancements.js"></script>
   <script src="/js/table-layout.js"></script>
   <script src="/js/uno-classic.js"></script>
+  <script src="/js/turn-clock.js"></script>
+  <script src="/js/currency-wallet.js"></script>
+  <script src="/js/game-api-client.js"></script>
   <script src="/js/portal.js"></script>
+  <script src="/js/spectator-link.js" defer></script>
+  <script src="/js/room-shell.js"></script>
+  <script src="/js/tutorial-content.js"></script>
+  <script src="/js/context-help.js"></script>
+  <script src="/js/context-help-ui.js"></script>
+  <script src="/js/storage-status.js"></script>
+  <script src="/js/storage-warning.js"></script>
+  <script src="/js/preflight.js"></script>
+  <script src="/js/preflight-mount.js"></script>
 </body>
 </html>
